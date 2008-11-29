@@ -264,7 +264,7 @@ class Content < ActiveRecord::Base
       rss_groupings(xml)
       rss_enclosure(xml)
       rss_trackback(xml)
-      xml.link permalink_url
+      xml.link "#{blog.base_url}/#{permalink}"
     end
   end
 

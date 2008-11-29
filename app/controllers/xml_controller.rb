@@ -113,7 +113,7 @@ class XmlController < ApplicationController
     fetch_items(article.comments, 'published_at DESC', 25)
     @items.unshift(article)
     @feed_title << ": #{article.title}"
-    @link = article.permalink_url
+    @link = "#{this_blog.base_url}/#{article.permalink}"
   end
 
   def prep_category

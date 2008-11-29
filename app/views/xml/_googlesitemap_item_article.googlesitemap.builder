@@ -1,5 +1,5 @@
 xm.url do
-  xm.loc item.permalink_url
+  xm.loc "#{this_blog.base_url}/#{item.permalink}"
   xm.lastmod item.updated_at.xmlschema
   xm.priority 0.8
 end
