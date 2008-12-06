@@ -13,8 +13,13 @@ class AccountsController < ApplicationController
 
         if params[:remember_me] == "1"
           self.current_user.remember_me unless self.current_user.remember_token?
-          cookies[:auth_token] = { :value => self.current_user.remember_token , :expires => self.current_user.remember_token_expires_at }
+          cookies[:auth_token] = {
+            :value => self.current_user.remember_token,
+            :expires => self.current_user.remember_token_expires_at,
+            :http_only => true # Help prevent auth_token theft.
+          }
         end
+        add_to_cookies(:typo_user_profile, self.current_user.profile.label, '/')
 
         flash[:notice]  = _("Login successful")
         redirect_back_or_default :controller => "admin/dashboard", :action => "index"
@@ -48,6 +53,8 @@ class AccountsController < ApplicationController
     self.current_user.forget_me
     self.current_user = nil
     session[:user_id] = nil
+    cookies.delete :auth_token
+    cookies.delete :typo_user_profile
     redirect_to :action => 'login'
   end
 

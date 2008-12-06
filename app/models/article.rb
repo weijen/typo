@@ -46,6 +46,9 @@ class Article < Content
 
   has_and_belongs_to_many :tags, :foreign_key => 'article_id'
 
+  named_scope :category, lambda {|category_id| {:conditions => ['categorizations.category_id = ?', category_id], :include => 'categorizations'}}
+
+
   belongs_to :user
 
   has_many :triggers, :as => :pending_item
@@ -74,6 +77,19 @@ class Article < Content
     def count_published_articles
       count(:conditions => { :published => true })
     end
+
+    def search_no_draft_paginate(search_hash, paginate_hash)
+      list_function  = ["Article.no_draft"] + function_search_no_draft(search_hash)
+
+      if search_hash[:category] and search_hash[:category].to_i > 0
+        list_function << 'category(search_hash[:category])'
+      end
+
+      paginate_hash[:order] = 'created_at DESC'
+      list_function << "paginate(paginate_hash)"
+      eval(list_function.join('.'))
+    end
+
   end
 
   accents = { ['á','à','â','ä','ã','Ã','Ä','Â','À'] => 'a',
@@ -278,9 +294,7 @@ class Article < Content
   # Fulltext searches the body of published articles
   def self.search(query)
     if !query.to_s.strip.empty?
-      tokens = query.split.collect {|c| "%#{c.downcase}%"}
-      find_published(:all,
-                     :conditions => [(["(LOWER(body) LIKE ? OR LOWER(extended) LIKE ? OR LOWER(title) LIKE ?)"] * tokens.size).join(" AND "), *tokens.collect { |token| [token] * 3 }.flatten])
+      Article.searchstring(query)
     else
       []
     end
@@ -491,7 +505,7 @@ class Article < Content
   end
 
   def access_by?(user) 
-    user.profile.label == 'admin' || user_id == user.id 
+    user.admin? || user_id == user.id 
   end
 
   protected
