@@ -27,7 +27,7 @@ class RedirectController < ContentController
   end
   
   def redirect_category_with_html
-    redirect_to "/category/params[:id]/page/#{params[:page]}.html", :status => 301
+    redirect_to "/category/#{params[:id]}/page/#{params[:page]}.html", :status => 301
   end
 
   def redirect_tag_with_html
