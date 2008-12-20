@@ -281,7 +281,7 @@ class Content < ActiveRecord::Base
   end
 
   def to_atom xml
-    xml.entry self, :url => permalink_url do |entry|
+    xml.entry self, :url => "#{blog.base_url}/#{permalink}.html" do |entry|
       atom_author(entry)
       atom_title(entry)
       atom_groupings(entry)
@@ -301,7 +301,7 @@ class Content < ActiveRecord::Base
       rss_groupings(xml)
       rss_enclosure(xml)
       rss_trackback(xml)
-      xml.link "#{blog.base_url}/#{permalink}"
+      xml.link "#{blog.base_url}/#{permalink}.html"
     end
   end
 
