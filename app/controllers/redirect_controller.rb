@@ -21,4 +21,35 @@ class RedirectController < ContentController
       render :text => "Page not found", :status => 404
     end
   end
+  
+  def redirect_article_with_html
+    redirect_to "/#{params[:title]}.html", :status => 301
+  end
+  
+  def redirect_category_with_html
+    redirect_to "/category/params[:id]/page/#{params[:page]}.html", :status => 301
+  end
+
+  def redirect_tag_with_html
+    redirect_to "/tag/params[:id]/page/:page.html"
+  end
+
+  def redirect_tags_with_html
+    redirect_to "/tags/params[:id]/page/:page.html"
+  end
+
+  def redirect_page_with_html
+    redirect_to "/pages/#{params[:name]}.html"
+  end
+  
+  def redirect_dates_with_html
+    if params[:day]
+      redirect_to "/#{params[:year]}/#{params[:month]}/#{params[:day]}/page/#{params[:page]}.html", :status => 301
+    elsif params[:month]
+      redirect_to "/#{params[:year]}/#{params[:month]}/page/#{params[:page]}.html", :status => 301
+    else 
+      redirect_to "/#{params[:year]}/page/#{params[:page]}.html", :status => 301
+    end
+  end
+  
 end

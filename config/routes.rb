@@ -89,22 +89,30 @@ ActionController::Routing::Routes.draw do |map|
       :controller => 'redirect', :action => 'redirect'
 
   map.inflected_resource(:categories, :path_prefix => '')
+  map.connect '/category/:id/page/:page.html',
+    :controller => 'categories', :action => 'show'
   map.connect '/category/:id/page/:page',
-  :controller => 'categories', :action => 'show'
-  
+    :controller => 'redirect', :action => 'redirect_category_with_html'
+
   map.inflected_resource(:authors, :path_prefix => '')
   
   map.inflected_resource(:tags, :path_prefix => '')
-  map.connect '/tag/:id/page/:page',
+  map.connect '/tag/:id/page/:page.html',
     :controller => 'tags', :action => 'show'
-  map.connect '/tags/page/:page', 
+  map.connect '/tags/page/:page.html', 
     :controller => 'tags', :action => 'index'
+    map.connect '/tag/:id/page/:page',
+      :controller => 'redirect', :action => 'redirect_tag_with_html'
+    map.connect '/tags/page/:page', 
+      :controller => 'redirect', :action => 'redirect_tags_with_html'
   
   map.resources(:feedback)
 
   # allow neat perma urls
-  map.connect ':title',
+  map.connect ':title.html',
     :controller => 'articles', :action => 'show'
+  map.connect ':title',
+    :controller => 'redirect', :action => 'redirect_article_with_html'
 
   map.connect ':title' + '.rss',
       :controller => 'articles', :action => 'show', :format => 'rss'
@@ -125,20 +133,29 @@ ActionController::Routing::Routes.draw do |map|
     get.with_options(date_options.merge(:controller => 'articles')) do |dated|
       dated.with_options(:action => 'index') do |finder|
         # new URL
-        finder.connect ':year/page/:page',
+        finder.connect ':year/page/:page.html',
           :month => nil, :day => nil, :page => /\d+/
-        finder.connect ':year/:month/page/:page',
+        finder.connect ':year/:month/page/:page.html',
           :day => nil, :page => /\d+/
-        finder.connect ':year/:month/:day/page/:page', :page => /\d+/
+        finder.connect ':year/:month/:day/page/:page.html', :page => /\d+/
+        
         finder.connect ':year',
           :month => nil, :day => nil
-          finder.connect ':year/:month',
-            :day => nil
-          finder.connect ':year/:month/:day', :page => nil
+        finder.connect ':year/:month',
+          :day => nil
+        finder.connect ':year/:month/:day', :page => nil
       end
     end
 
-    get.connect 'pages/*name',:controller => 'articles', :action => 'view_page'
+    map.connect ':year/page/:page',
+      :controller => 'redirect', :action => 'redirect_dates_with_html'
+    map.connect ':year/:month/page/:page',
+      :controller => 'redirect', :action => 'redirect_dates_with_html'
+    map.connect ':year/:month/:day/page/:page', 
+      :controller => 'redirect', :action => 'redirect_dates_with_html'
+
+    get.connect 'pages/*name.html',:controller => 'articles', :action => 'view_page'
+    get.connect 'pages/*name',:controller => 'redirect', :action => 'redirect_page_with_html'
 
     get.with_options(:controller => 'theme', :filename => /.*/, :conditions => {:method => :get}) do |theme|
       theme.connect 'stylesheets/theme/:filename', :action => 'stylesheets'
