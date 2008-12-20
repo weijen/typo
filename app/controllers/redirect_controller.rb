@@ -47,8 +47,10 @@ class RedirectController < ContentController
       redirect_to "/#{params[:year]}/#{params[:month]}/#{params[:day]}/page/#{params[:page]}.html", :status => 301
     elsif params[:month]
       redirect_to "/#{params[:year]}/#{params[:month]}/page/#{params[:page]}.html", :status => 301
-    else 
+    elsif params[:year]
       redirect_to "/#{params[:year]}/page/#{params[:page]}.html", :status => 301
+    else
+      redirect_to "/page/#{params[:page]}.html", :status => 301
     end
   end
   

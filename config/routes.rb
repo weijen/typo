@@ -123,9 +123,12 @@ ActionController::Routing::Routes.draw do |map|
   map.connect ':title/comments',
     :controller => 'comments', :action => 'create', :conditions => {:method => :post}
   
-  map.connect 'page/:page',
+  map.connect 'page/:page.html',
     :controller => 'articles', :action => 'index',
     :page => /\d+/
+
+  map.connect 'page/:page',
+    :controller => 'redirect', :action => 'redirect_dates_with_html'
 
   date_options = { :year => /\d{4}/, :month => /(?:0?[1-9]|1[012])/, :day => /(?:0[1-9]|[12]\d|3[01])/ }
 
