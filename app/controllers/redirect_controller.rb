@@ -31,11 +31,11 @@ class RedirectController < ContentController
   end
 
   def redirect_tag_with_html
-    redirect_to "/tag/params[:id]/page/:page.html"
+    redirect_to "/tag/#{params[:id]}/page/#{params[:page]}.html"
   end
 
   def redirect_tags_with_html
-    redirect_to "/tags/params[:id]/page/:page.html"
+    redirect_to "/tags/page/#{params[:page]}.html"
   end
 
   def redirect_page_with_html
