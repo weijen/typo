@@ -1,7 +1,7 @@
 require 'rake/gempackagetask'
 require 'rake/contrib/rubyforgepublisher'
 
-PKG_VERSION = "5.1.98"
+PKG_VERSION = "5.2"
 PKG_NAME = "typo"
 PKG_FILE_NAME = "#{PKG_NAME}-#{PKG_VERSION}"
 RUBY_FORGE_PROJECT = 'typo'
@@ -37,6 +37,7 @@ spec = Gem::Specification.new do |s|
   s.add_dependency("ruby-debug", ">= 0.10.3")
   s.add_dependency("flexmock", ">= 0.8.3")
   s.add_dependency("htmlentities", "4.0.0")
+  s.add_dependency("json", ">=1.1.3")
 end
 
 Rake::GemPackageTask.new(spec) do |p|
