@@ -15,23 +15,6 @@ class Admin::BaseController < ApplicationController
   end
 
   def sweep_cache
-    if Blog.default
-      if Blog.default.cache_option == "caches_action_with_params"
-        sweep_cache_action
-      end
-      if Blog.default.cache_option == "caches_page"
-        sweep_cache_html
-      end
-    end
-  end
-
-  def sweep_cache_action
-    PageCache.sweep_all
-    expire_fragment(/.*/)
-  end
-
-  def sweep_cache_html
-    PageCache.sweep_all
-    expire_fragment(/^contents_html.*/)
+    PageCache.sweep_all  
   end
 end
