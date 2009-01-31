@@ -4,15 +4,27 @@
 # (Use only when you can't set environment variables through your web/app server)
 # ENV['RAILS_ENV'] = 'production'
 
+RAILS_GEM_VERSION = '2.2.2' unless defined? RAILS_GEM_VERSION
+
 # Bootstrap the Rails environment, frameworks, and default configuration
 require File.join(File.dirname(__FILE__), 'boot')
 
 # need this early for plugins
 require 'typo_deprecated'
 
+class Rails::Configuration
+  attr_accessor :action_web_service
+end
+
 Rails::Initializer.run do |config|
   # Skip frameworks you're not going to use
   config.frameworks -= [ :active_resource ]
+
+  # Fix up action_web_service, see:
+  # http://www.texperts.com/2007/12/21/using-action-web-service-with-rails-20/
+  config.frameworks += [ :action_web_service ]
+
+  config.action_web_service = Rails::OrderedOptions.new
 
   # Add additional load paths for your own custom dirs
   # config.load_paths += %W( #{RAILS_ROOT}/app/services )
@@ -49,6 +61,11 @@ Rails::Initializer.run do |config|
   config.gem 'coderay'
   config.gem 'htmlentities'
   config.gem 'json'
+
+  # Declare needed (github) gems
+  config.gem 'datanoise-actionwebservice', :version => '2.2.2', :lib => 'actionwebservice', :source => 'http://gems.github.com'
+  config.gem 'mislav-will_paginate', :version => '2.3.6', :lib => 'will_paginate', :source => 'http://gems.github.com'
+  config.gem 'rspec-rails', :lib => 'spec/rails', :version => '~> 1.1.11'
 
   # Force all environments to use the same logger level
   # (by default production uses :info, the others :debug)
@@ -89,8 +106,6 @@ end
 # Include your application configuration below
 
 # Load included libraries.
-require 'actionwebservice'
-
 require 'redcloth'
 require 'bluecloth'
 require 'rubypants'

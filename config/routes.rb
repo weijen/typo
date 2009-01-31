@@ -49,16 +49,22 @@ ActionController::Routing::Routes.draw do |map|
   # cached feeds with the correct xml mime type.
 
   map.xml 'articles.:format', :controller => 'articles', :action => 'index', :format => /rss|atom/
-  map.xml 'xml/itunes/feed.xml', :controller => 'xml', :action => 'itunes'
-  map.xml 'xml/articlerss/:id/feed.xml', :controller => 'xml', :action => 'articlerss'
-  map.xml 'xml/commentrss/feed.xml', :controller => 'xml', :action => 'commentrss'
-  map.xml 'xml/trackbackrss/feed.xml', :controller => 'xml', :action => 'trackbackrss'
-
-  map.xml 'xml/:format/feed.xml', :controller => 'xml', :action => 'feed', :type => 'feed'
-  map.xml 'xml/:format/:type/feed.xml', :controller => 'xml', :action => 'feed'
-  map.xml 'xml/:format/:type/:id/feed.xml', :controller => 'xml', :action => 'feed'
-  map.xml 'xml/rss', :controller => 'xml', :action => 'feed', :type => 'feed', :format => 'rss'
-  map.xml 'sitemap.xml', :controller => 'xml', :action => 'feed', :format => 'googlesitemap', :type => 'sitemap'
+  
+  map.with_options :controller => 'xml', :path_prefix => 'xml' do |controller|
+    controller.xml 'itunes/feed.xml', :action => 'itunes'
+    controller.xml 'articlerss/:id/feed.xml', :action => 'articlerss'
+    controller.xml 'commentrss/feed.xml', :action => 'commentrss'
+    controller.xml 'trackbackrss/feed.xml', :action => 'trackbackrss'
+    
+    controller.with_options :action => 'feed' do |action|
+      action.xml 'rss', :type => 'feed', :format => 'rss'
+      action.xml 'sitemap.xml', :format => 'googlesitemap', :type => 'sitemap', :path_prefix => nil
+      action.xml ':format/feed.xml', :type => 'feed'
+      action.xml ':format/:type/feed.xml'
+      action.xml ':format/:type/:id/feed.xml'
+    end
+  end
+  
 
   map.resources :comments, :name_prefix => 'admin_'
   map.resources :trackbacks
@@ -78,12 +84,6 @@ ActionController::Routing::Routes.draw do |map|
   
   map.connect "trackbacks/:id/:day/:month/:year",
     :controller => 'trackbacks', :action => 'create', :conditions => {:method => :post}
-
-  # Redirects from old permalinks
-  map.connect "articles/:controler/:name",
-    :controller => 'redirect', :action => 'redirect'
-    map.connect "articles/:controler",
-      :controller => 'redirect', :action => 'redirect'
 
   map.inflected_resource(:categories, :path_prefix => '')
   map.connect '/category/:id/page/:page.html',
@@ -166,7 +166,7 @@ ActionController::Routing::Routes.draw do |map|
   end
 
   # Work around the Bad URI bug
-  %w{ accounts articles backend files live sidebar textfilter xml }.each do |i|
+  %w{ accounts backend files live sidebar textfilter xml }.each do |i|
     map.connect "#{i}", :controller => "#{i}", :action => 'index'
     map.connect "#{i}/:action", :controller => "#{i}"
     map.connect "#{i}/:action/:id", :controller => i, :id => nil
