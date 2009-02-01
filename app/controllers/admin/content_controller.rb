@@ -1,4 +1,5 @@
 require 'base64'
+
 module Admin; end
 class Admin::ContentController < Admin::BaseController
   layout "administration", :except => [:show, :autosave]
