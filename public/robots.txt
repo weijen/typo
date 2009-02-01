@@ -2,5 +2,12 @@ User-agent: *
 Disallow: /admin/
 Disallow: /page/
 Disallow: /cgi-bin 
+Disallow: /2004/
+Disallow: /2005/
+Disallow: /2006/
+Disallow: /2007/
+Disallow: /2008/
+Disallow: /2009/
+
 User-agent: Googlebot-Image
 Allow: /*
