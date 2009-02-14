@@ -8,6 +8,6 @@ Disallow: /2006/
 Disallow: /2007/
 Disallow: /2008/
 Disallow: /2009/
-
+Disallow: /tag/
 User-agent: Googlebot-Image
 Allow: /*
