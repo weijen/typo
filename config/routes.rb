@@ -72,11 +72,13 @@ ActionController::Routing::Routes.draw do |map|
 
   map.datestamped_resources(:articles,
                             :collection => {
-                              :search => :get, :comment_preview => :any,
+                              :search => :get, 
+                              :live_search => :post, 
+                              :comment_preview => :any,
                               :archives => :get
                             },
                             :member => {
-                              :markup_help => :get
+                              :markup_help => :get,
                             }) do |dated|
     dated.resources :trackbacks
     dated.connect 'trackbacks', :controller => 'trackbacks', :action => 'create', :conditions => {:method => :post}
@@ -166,7 +168,7 @@ ActionController::Routing::Routes.draw do |map|
   end
 
   # Work around the Bad URI bug
-  %w{ accounts backend files live sidebar textfilter xml }.each do |i|
+  %w{ accounts backend files sidebar textfilter xml }.each do |i|
     map.connect "#{i}", :controller => "#{i}", :action => 'index'
     map.connect "#{i}/:action", :controller => "#{i}"
     map.connect "#{i}/:action/:id", :controller => i, :id => nil
