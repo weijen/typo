@@ -131,13 +131,7 @@ class Admin::ContentController < Admin::BaseController
     @macros = TextFilter.available_filters.select { |filter| TextFilterPlugin::Macro > filter }
     @article.published = true
     
-<<<<<<< HEAD:app/controllers/admin/content_controller.rb
-    #params[:article] ||= {}
-=======
-    # TODO Test if we can delete the next line. It's delete on nice_permalinks branch
     params[:article] ||= {}
->>>>>>> origin/master:app/controllers/admin/content_controller.rb
-
     @resources = Resource.find(:all, :order => 'filename')
     @article.attributes = params[:article]
     
