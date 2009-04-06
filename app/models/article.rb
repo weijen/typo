@@ -500,15 +500,19 @@ class Article < Content
     # some bad data insert by FCKEditor. We can found to &eacute; by exemple.
     # If we doesn't change that, the atom feed is invalid
     coder = HTMLEntities.new
-    post = coder.decode(html(blog.show_extended_on_rss ? :all : :body))
-    content = blog.rss_description ? post + rss_desc : post
 
     xml.summary "type" => "xhtml" do
-      xml.div(:xmlns => "http://www.w3.org/1999/xhtml") {xml << coder.decode(html(:body)) }
+      xml.div(:xmlns => "http://www.w3.org/1999/xhtml") {
+        xml << coder.decode(html(:body)) 
+      }
     end
+
     if blog.show_extended_on_rss
+      Rails.logger.info xml.to_inspect
       xml.content(:type => "xhtml") do
-        xml.div(:xmlns => 'http://www.w3.org/1999/xhtml') { xml << content }
+        post = coder.decode(html(blog.show_extended_on_rss ? :all : :body))
+        content = blog.rss_description ? post + rss_desc : post
+        xml << content 
       end
     end
   end
