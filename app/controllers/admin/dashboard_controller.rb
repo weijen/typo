@@ -52,6 +52,8 @@ class Admin::DashboardController < Admin::BaseController
     end
   rescue
     @inbound_links = nil
+  rescue Timeout::Error => e
+    @inbound_links = nil
   end
   
   def typo_dev
@@ -60,6 +62,8 @@ class Admin::DashboardController < Admin::BaseController
       @typo_links = parse_rss(http.read)[0..1]
     end
   rescue
+    @typo_links = nil
+  rescue Timeout::Error => e
     @typo_links = nil
   end
   
