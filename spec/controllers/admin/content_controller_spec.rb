@@ -53,12 +53,12 @@ describe Admin::ContentController do
     
     it 'should render _simple_editor' do
       get(:insert_editor, :editor => 'simple')
-      response.should render_template('simple_editor')
+      response.should render_template('_simple_editor')
     end
 
     it 'should render _visual_editor' do
       get(:insert_editor, :editor => 'visual')
-      response.should render_template('visual_editor')
+      response.should render_template('_visual_editor')
     end
 
   end
@@ -100,18 +100,21 @@ describe Admin::ContentController do
       begin
         ActionMailer::Base.perform_deliveries = true
         ActionMailer::Base.deliveries = []
-        num_articles = Article.count_published_articles
+        category = Factory(:category)
         emails = ActionMailer::Base.deliveries
-        tags = ['foo', 'bar', 'baz bliz', 'gorp gack gar']
-        post :new, 'article' => base_article(:keywords => tags) , 'categories' => [categories(:software).id]
-        assert_response :redirect, :action => 'show'
 
-        assert_equal num_articles + 1, Article.count_published_articles
+        assert_difference 'Article.count_published_articles' do
+          tags = ['foo', 'bar', 'baz bliz', 'gorp gack gar']
+          post :new, 
+            'article' => base_article(:keywords => tags) , 
+            'categories' => [category.id]
+          assert_response :redirect, :action => 'show'
+        end
 
-        new_article = Article.find(:first, :order => "id DESC")
+        new_article = Article.last
         assert_equal @user, new_article.user
         assert_equal 1, new_article.categories.size
-        assert_equal [categories(:software)], new_article.categories
+        assert_equal [category], new_article.categories
         assert_equal 4, new_article.tags.size
 
         assert_equal(1, emails.size)
@@ -256,8 +259,8 @@ describe Admin::ContentController do
         get :resource_remove, :id => art_id, :resource_id => resources(:resource1).id
 
         response.should render_template('_show_resources')
-        assert_valid assigns(:article)
-        assert_valid assigns(:resource)
+        assert assigns(:article).valid?
+        assert assigns(:resource).valid?
         assert !Article.find(art_id).resources.include?(resources(:resource1))
         assert_not_nil assigns(:article)
         assert_not_nil assigns(:resource)

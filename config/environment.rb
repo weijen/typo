@@ -4,7 +4,7 @@
 # (Use only when you can't set environment variables through your web/app server)
 # ENV['RAILS_ENV'] = 'production'
 
-RAILS_GEM_VERSION = '2.2.2' unless defined? RAILS_GEM_VERSION
+RAILS_GEM_VERSION = '2.3.3' unless defined? RAILS_GEM_VERSION
 
 # Bootstrap the Rails environment, frameworks, and default configuration
 require File.join(File.dirname(__FILE__), 'boot')
@@ -13,7 +13,6 @@ require File.join(File.dirname(__FILE__), 'boot')
 class Rails::Configuration
   attr_accessor :action_web_service
 end
-
 Rails::Initializer.run do |config|
   # Skip frameworks you're not going to use
   config.frameworks -= [ :active_resource ]
@@ -30,24 +29,20 @@ Rails::Initializer.run do |config|
   # I need the localization plugin to load first
   # Otherwise, I can't localize plugins <= localization
   # Forcing manually the load of the textfilters plugins fixes the bugs with apache in production.
-  config.plugins = [ 'localization', :all ]
+  config.plugins = [ :localization, :all ]
   
   config.load_paths += %W(
     vendor/rubypants
     vendor/akismet
-    vendor/redcloth/lib
-    vendor/bluecloth/lib
     vendor/flickr
-    vendor/gems/coderay
     vendor/uuidtools/lib
-    vendor/mocha/lib
     vendor/rails/railties
     vendor/rails/railties/lib
     vendor/rails/actionpack/lib
     vendor/rails/activesupport/lib
     vendor/rails/activerecord/lib
     vendor/rails/actionmailer/lib
-    vendor/actionwebservice/lib
+    vendor/gems/datanoise-actionwebservice-2.3.2/lib
     app/apis
   ).map {|dir| "#{RAILS_ROOT}/#{dir}"}.select { |dir| File.directory?(dir) }
 
@@ -57,8 +52,11 @@ Rails::Initializer.run do |config|
   config.gem 'htmlentities'
   config.gem 'json'
   config.gem 'calendar_date_select'
-  config.gem 'bluecloth', :version => '~> 2.0.0'
+  config.gem 'bluecloth', :version => '~> 2.0.5'
   config.gem 'coderay', :version => '~> 0.8'
+  config.gem 'mislav-will_paginate', :version => '~> 2.3.11', :lib => 'will_paginate', 
+          :source => 'http://gems.github.com'
+  config.gem 'RedCloth', :version => '~> 4.2.2'
   
   # Use the database for sessions instead of the file system
   # (create the session table with 'rake create_sessions_table')
@@ -71,7 +69,6 @@ end
 
 # Load included libraries.
 require 'rubypants'
-#require 'flickr'
 require 'uuidtools'
 
 require 'migrator'

@@ -24,7 +24,7 @@ describe 'A successfully authenticated login' do
 
   it 'sets typo_user_profile cookie' do
     make_request
-    cookies[:typo_user_profile].should == ['admin']
+    cookies[:typo_user_profile].should == 'admin'
   end
 
   it 'redirects to /bogus/location' do
@@ -83,6 +83,23 @@ describe 'User is inactive' do
     response.should render_template(:login)
   end
   
+end
+
+describe 'Login with nil user and password' do
+  controller_name :accounts
+
+  before(:each) do
+    User.stub!(:count).and_return(1)
+  end
+  
+  def make_request
+   post 'login', {:user_login => nil, :password => nil}
+  end
+
+  it 'should render login action' do
+    make_request
+    response.should render_template(:login)
+  end
 end
 
 describe 'Login gets the wrong password' do
@@ -261,7 +278,7 @@ describe 'User is logged in' do
   it 'logging out deletes cookies containing credentials' do
     @user.should_receive(:forget_me)
     get 'logout'
-    cookies[:auth_token].should == []
-    cookies[:typo_user_profile].should == []
+    cookies[:auth_token].should == nil
+    cookies[:typo_user_profile].should == nil
   end
 end
