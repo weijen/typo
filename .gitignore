@@ -9,4 +9,7 @@ db/schema.rb
 config/deploy.rb
 Capfile
 installer/rails_installer.yml
+/public/images/theme
+/public/javascripts/ckeditor/config.js
+/public/stylesheets/theme
 tmp/*

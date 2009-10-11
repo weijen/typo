@@ -4,9 +4,7 @@
   $('visual_editor').style.display = 'block';
   $('s').className = 'inactive';
   $('f').className = 'active';
-  if (typeof(html2) != 'undefined') {
-    html2 = null;
-  }
-  html2 = $('article_body_and_extended').innerHTML;
+  $('text_filter').value = 'none';
+  html = $('article_body_and_extended').innerHTML;
 </script>
-<%= fckeditor_textarea('article', 'body_and_extended', {:height => '300', :class => 'medium'}) %>
+<%= ckeditor_textarea('article', 'body_and_extended', {:height => '300', :class => 'medium'}) %>
