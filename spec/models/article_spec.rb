@@ -2,7 +2,6 @@ require File.dirname(__FILE__) + '/../spec_helper'
 
 describe Article do
 
-
   before do
     @articles = []
   end
@@ -15,11 +14,19 @@ describe Article do
     it 'should second_article factory valid' do
       Factory(:second_article).should be_valid
       Factory.build(:second_article).should be_valid
-
     end
     it 'should article_with_accent_in_html' do
       Factory(:article_with_accent_in_html).should be_valid
       Factory.build(:article_with_accent_in_html).should be_valid
+    end
+    it 'should store user too' do
+      a = Factory(:article)
+      a.user.should be_valid
+      Article.find(a.id).user.should_not be_nil
+    end
+    it 'should create multiple valid articles' do
+      Factory(:article).should be_valid
+      Factory(:article).should be_valid
     end
   end
 
@@ -30,32 +37,36 @@ describe Article do
     end
   end
 
-  def test_content_fields
+  it "test_content_fields" do
     a = Article.new
     assert_equal [:body, :extended], a.content_fields
   end
 
-  def test_permalink_url
-    assert_equal 'http://myblog.net/2004/06/01/article-3', contents(:article3).permalink_url(anchor=nil, only_path=true)
+  it "test_permalink_url with hostname" do
+    assert_equal 'http://myblog.net/2004/06/01/article-3', contents(:article3).permalink_url(anchor=nil, only_path=false)
   end
 
-  def test_edit_url
+  it "test_permalink_url only path" do
+    assert_equal '/2004/06/01/article-3', contents(:article3).permalink_url(anchor=nil, only_path=true)
+  end
+
+  it "test_edit_url" do
     a = contents(:article3)
     assert_equal "http://myblog.net/admin/content/edit/#{a.id}", a.edit_url
   end
 
-  def test_delete_url
+  it "test_delete_url" do
     a = contents(:article3)
     assert_equal "http://myblog.net/admin/content/destroy/#{a.id}", a.delete_url
   end
 
-  def test_feed_url
+  it "test_feed_url" do
     a = contents(:article3)
     assert_equal "http://myblog.net/2004/06/01/article-3.atom", a.feed_url(:atom10)
     assert_equal "http://myblog.net/2004/06/01/article-3.rss", a.feed_url(:rss20)
   end
 
-  def test_create
+  it "test_create" do
     a = Article.new
     a.user_id = 1
     a.body = "Foo"
@@ -69,7 +80,7 @@ describe Article do
     assert_equal 1, b.categories.size
   end
 
-  def test_permalink_with_title
+  it "test_permalink_with_title" do
     assert_equal( contents(:article3),
                   Article.find_by_permalink({:year => 2004, :month => 06, :day => 01, :title => "article-3"}) )
     assert_raises(ActiveRecord::RecordNotFound) do
@@ -77,7 +88,7 @@ describe Article do
     end
   end
 
-  def test_strip_title
+  it "test_strip_title" do
     assert_equal "article-3", "Article-3".to_url
     assert_equal "article-3", "Article 3!?#".to_url
     assert_equal "there-is-sex-in-my-violence", "There is Sex in my Violence!".to_url
@@ -86,13 +97,13 @@ describe Article do
     assert_equal "my-cats-best-friend", "My Cat's Best Friend".to_url
   end
 
-  def test_perma_title
+  it "test_perma_title" do
     assert_equal "article-1", contents(:article1).stripped_title
     assert_equal "article-2", contents(:article2).stripped_title
     assert_equal "article-3", contents(:article3).stripped_title
   end
 
-  def test_html_title
+  it "test_html_title" do
     a = Article.new
     a.title = "This <i>is</i> a <b>test</b>"
     assert a.save
@@ -100,7 +111,7 @@ describe Article do
     assert_equal 'this-is-a-test', a.permalink
   end
 
-  def test_multibyte_title
+  it "test_multibyte_title" do
     a = Article.new
     a.title = "ルビー"
     assert a.save
@@ -108,20 +119,50 @@ describe Article do
     assert_equal '%E3%83%AB%E3%83%93%E3%83%BC', a.permalink
   end
 
-  def test_urls
-    urls = contents(:article4).html_urls
-    assert_equal ["http://www.example.com/public"], urls
+  describe "the html_urls method" do
+    it "test_urls" do
+      urls = contents(:article4).html_urls
+      assert_equal ["http://www.example.com/public"], urls
+    end
+
+    it "should only match the href attribute" do
+      a = Factory.create :article
+      a.body = '<a href="http://a/b">a</a> <a fhref="wrong">wrong</a>'
+      urls = a.html_urls
+      assert_equal ["http://a/b"], urls
+    end
+
+    it "should match across newlines" do
+      a = Factory.create :article
+      a.body = "<a\nhref=\"http://foo/bar\">foo</a>"
+      urls = a.html_urls
+      assert_equal ["http://foo/bar"], urls
+    end
+
+    it "should match with single quotes" do
+      a = Factory.create :article
+      a.body = "<a href='http://foo/bar'>foo</a>"
+      urls = a.html_urls
+      assert_equal ["http://foo/bar"], urls
+    end
+
+    it "should match with no quotes" do
+      a = Factory.create :article
+      a.body = "<a href=http://foo/bar>foo</a>"
+      urls = a.html_urls
+      assert_equal ["http://foo/bar"], urls
+    end
   end
 
   ### XXX: Should we have a test here?
-  def test_send_pings
+  it "test_send_pings" do
   end
 
   ### XXX: Should we have a test here?
-  def test_send_multiple_pings
+  it "test_send_multiple_pings" do
   end
 
-  def test_tags
+  it "test_tags" do
     a = Article.new(:title => 'Test tag article',
                     :keywords => 'test tag tag stuff');
 
@@ -163,14 +204,14 @@ describe Article do
     assert_equal ['test', 'tagtest', 'web2-0'].sort, c.tags.collect(&:name).sort
   end
 
-  def test_find_published_by_tag_name
+  it "test_find_published_by_tag_name" do
     @articles = Tag.find_by_name(tags(:foo).name).published_articles
 
     assert_results_are(:article1, :article2, :publisher_article)
   end
 
 
-  def test_find_published
+  it "test_find_published" do
     @articles = Article.find_published
     assert_results_are(:search_target, :article1, :article2,
                        :article3, :inactive_article,:xmltest,
@@ -181,7 +222,7 @@ describe Article do
     assert_results_are :article1
   end
 
-  def test_just_published_flag
+  it "test_just_published_flag" do
     art = Article.new(:title => 'title',
                                    :body => 'body',
                                    :published => true)
@@ -198,18 +239,18 @@ describe Article do
     assert ! art.just_changed_published_status?
   end
 
-  def test_future_publishing
+  it "test_future_publishing" do
     assert_sets_trigger(Article.create!(:title => 'title', :body => 'body',
                                         :published => true,
                                         :published_at => Time.now + 4.seconds))
   end
 
-  def test_future_publishing_without_published_flag
+  it "test_future_publishing_without_published_flag" do
     assert_sets_trigger Article.create!(:title => 'title', :body => 'body',
                                         :published_at => Time.now + 4.seconds)
   end
 
-  def test_triggers_are_dependent
+  it "test_triggers_are_dependent" do
     art = Article.create!(:title => 'title', :body => 'body',
                           :published_at => Time.now + 1.hour)
     assert_equal 1, Trigger.count
@@ -230,7 +271,7 @@ describe Article do
     assert art.published
   end
 
-  def test_find_published_by_category
+  it "test_find_published_by_category" do
     Article.create!(:title      => "News from the future!",
                     :body       => "The future is cool!",
                     :keywords   => "future",
@@ -243,13 +284,13 @@ describe Article do
     assert_results_are :article1
   end
 
-  def test_find_published_by_nonexistent_category_raises_exception
+  it "test_find_published_by_nonexistent_category_raises_exception" do
     assert_raises ActiveRecord::RecordNotFound do
       Category.find_by_permalink('does-not-exist').published_articles
     end
   end
 
-  def test_destroy_file_upload_associations
+  it "test_destroy_file_upload_associations" do
     a = contents(:article1)
     assert_equal 2, a.resources.size
     a.resources << resources(:resource3)
@@ -259,6 +300,9 @@ describe Article do
   end
 
   it 'should notify' do
+    [:randomuser, :bob].each do |tag|
+      u = users(tag); u.notify_on_new_articles = true; u.save!
+    end
     a = Article.new(:title => 'New Article', :body => 'Foo', :author => 'Tobi', :user => users(:tobi))
     assert a.save
 
@@ -266,13 +310,13 @@ describe Article do
     assert_equal ['bob', 'randomuser'], a.notify_users.collect {|u| u.login }.sort
   end
 
-  def test_tags_on_update
+  it "test_tags_on_update" do
     contents(:article3).update_attribute :keywords, "my new tags"
     assert_equal 3, contents(:article3).reload.tags.size
     assert contents(:article3).tags.include?(Tag.find_by_name("new"))
   end
 
-  def test_withdrawal
+  it "test_withdrawal" do
     art = Article.find(contents(:article1).id)
     assert   art.published?
     assert ! art.withdrawn?
@@ -284,7 +328,7 @@ describe Article do
     assert   art.withdrawn?
   end
 
-  def test_default_filter
+  it "test_default_filter" do
     a = Article.find(contents(:article1).id)
     assert_equal 'textile', a.default_text_filter.name
   end
@@ -307,7 +351,7 @@ describe Article do
   end
 
   describe 'body_and_extended' do
-    before :each do 
+    before :each do
       @article = contents(:article1)
     end
 
@@ -358,7 +402,7 @@ describe Article do
   end
 
   describe 'body_and_extended=' do
-    before :each do 
+    before :each do
       @article = contents(:article1)
     end
 
@@ -367,7 +411,7 @@ describe Article do
       @article.body.should == 'foo'
       @article.extended.should == 'bar'
     end
-    
+
     it 'should remove newlines around <!--more-->' do
       @article.body_and_extended = "foo\n<!--more-->\nbar"
       @article.body.should == 'foo'
@@ -405,14 +449,14 @@ describe Article do
     end
   end
 
-  def test_can_ping_fresh_article_iff_it_allows_pings
+  it "test_can_ping_fresh_article_iff_it_allows_pings" do
     a = Article.find(contents(:article1).id)
     assert_equal(false, a.pings_closed?)
     a.allow_pings = false
     assert_equal(true, a.pings_closed?)
   end
 
-  def test_cannot_ping_old_article
+  it "test_cannot_ping_old_article" do
     a = Article.find(contents(:article3).id)
     assert_equal(true, a.pings_closed?)
     a.allow_pings = false
@@ -421,25 +465,51 @@ describe Article do
 
   describe '#published_at_like' do
     before do
-      @article_last_month = Factory(:article, :published_at => 1.month.ago)
-      @article_2_last_month = Factory(:article, :published_at => 1.month.ago)
-
+      # Note: these choices of times depend on no other articles within
+      # these timeframes existing in test/fixtures/contents.yaml.
+      # In particular, all articles there are from 2005 or earlier, which
+      # is now more than two years ago, except for two, which are from
+      # yesterday and the day before. The existence of those two makes
+      # 1.month.ago not suitable, because yesterday can be last month.
       @article_two_month_ago = Factory(:article, :published_at => 2.month.ago)
-      @article_2_two_month_ago = Factory(:article, :published_at => (2.month.ago - 1.day))
+
+      @article_four_months_ago = Factory(:article, :published_at => 4.month.ago)
+      @article_2_four_months_ago = Factory(:article, :published_at => 4.month.ago)
+
       @article_two_year_ago = Factory(:article, :published_at => 2.year.ago)
       @article_2_two_year_ago = Factory(:article, :published_at => 2.year.ago)
     end
 
-    it 'should return all content on this year if year send' do
+    it 'should return all content for the year if only year sent' do
       Article.published_at_like(2.year.ago.strftime('%Y')).map(&:id).sort.should == [@article_two_year_ago.id, @article_2_two_year_ago.id].sort
     end
 
-    it 'should return all content on this month if month send' do
-      Article.published_at_like(1.month.ago.strftime('%Y-%m')).map(&:id).sort.should == [@article_last_month.id, @article_2_last_month.id].sort
+    it 'should return all content for the month if year and month sent' do
+      Article.published_at_like(4.month.ago.strftime('%Y-%m')).map(&:id).sort.should == [@article_four_months_ago.id, @article_2_four_months_ago.id].sort
     end
 
     it 'should return all content on this date if date send' do
       Article.published_at_like(2.month.ago.strftime('%Y-%m-%d')).map(&:id).sort.should == [@article_two_month_ago.id].sort
+    end
+  end
+
+  describe '#has_child?' do
+    it 'should be true if article has one to link it by parent_id' do
+      Factory(:article, :parent_id => contents(:article1).id)
+      contents(:article1).should be_has_child
+    end
+    it 'should be false if article has no article to link it by parent_id' do
+      contents(:article1).should_not be_has_child
+    end
+  end
+
+  describe 'self#last_draft(id)' do
+    it 'should return article if no draft associated' do
+      Article.last_draft(contents(:article1).id).should == contents(:article1)
+    end
+    it 'should return draft associated to this article if there are one' do
+      draft = Factory(:article, :parent_id => contents(:article1).id, :state => 'draft')
+      Article.last_draft(contents(:article1).id).should == draft
     end
   end
 end

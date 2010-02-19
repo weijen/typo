@@ -6,9 +6,6 @@ require 'spec/autorun'
 require 'spec/rails'
 
 Spec::Runner.configure do |config|
-  # If you're not using ActiveRecord you should remove these
-  # lines, delete config/database.yml and disable :active_record
-  # in your config/boot.rb
   config.use_transactional_fixtures = true
   config.use_instantiated_fixtures  = false
   config.fixture_path = RAILS_ROOT + '/test/fixtures/'
@@ -20,6 +17,8 @@ Spec::Runner.configure do |config|
   config.before(:each) do
     Localization.lang = :default
   end
+end
+
 def define_spec_public_cache_directory
   ActionController::Base.page_cache_directory = File.join(Rails.root, 'spec', 'public')
   unless File.exist? ActionController::Base.page_cache_directory
@@ -38,39 +37,6 @@ def create_file_in_spec_public_cache_directory(file)
   file_path
 end
 
-  # == Fixtures
-  #
-  # You can declare fixtures for each example_group like this:
-  #   describe "...." do
-  #     fixtures :table_a, :table_b
-  #
-  # Alternatively, if you prefer to declare them only once, you can
-  # do so right here. Just uncomment the next line and replace the fixture
-  # names with your fixtures.
-  #
-  # config.global_fixtures = :table_a, :table_b
-  #
-  # If you declare global fixtures, be aware that they will be declared
-  # for all of your examples, even those that don't use them.
-  #
-  # You can also declare which fixtures to use (for example fixtures for test/fixtures):
-  #
-  # config.fixture_path = RAILS_ROOT + '/spec/fixtures/'
-  #
-  # == Mock Framework
-  #
-  # RSpec uses it's own mocking framework by default. If you prefer to
-  # use mocha, flexmock or RR, uncomment the appropriate line:
-  #
-  # config.mock_with :mocha
-  # config.mock_with :flexmock
-  # config.mock_with :rr
-  #
-  # == Notes
-  # 
-  # For more information take a look at Spec::Runner::Configuration and Spec::Runner
-end
-
 # TODO: Rewrite to be more RSpec-like instead of Test::Unit-like.
 def assert_template_has(key=nil, message=nil)
   msg = build_message(message, "<?> is not a template object", key)
@@ -85,5 +51,83 @@ end
 
 def this_blog
   Blog.default || Blog.create!
+end
+
+# test standard view and all themes
+def with_each_theme
+  yield nil, ""
+  Dir.new(File.join(RAILS_ROOT, "themes")).each do |theme|
+    next if theme =~ /\.\.?/
+    view_path = "#{RAILS_ROOT}/themes/#{theme}/views" 
+    if File.exists?("#{RAILS_ROOT}/themes/#{theme}/helpers/theme_helper.rb")
+      require "#{RAILS_ROOT}/themes/#{theme}/helpers/theme_helper.rb"
+    end
+    yield theme, view_path
+  end
+end
+
+# This test now has optional support for validating the generated RSS feeds.
+# Since Ruby doesn't have a RSS/Atom validator, I'm using the Python source
+# for http://feedvalidator.org and calling it via 'system'.
+#
+# To install the validator, download the source from
+# http://sourceforge.net/cvs/?group_id=99943
+# Then copy src/feedvalidator and src/rdflib into a Python lib directory.
+# Finally, copy src/demo.py into your path as 'feedvalidator', make it executable,
+# and change the first line to something like '#!/usr/bin/python'.
+
+if($validator_installed == nil)
+  $validator_installed = false
+  begin
+    IO.popen("feedvalidator 2> /dev/null","r") do |pipe|
+      if (pipe.read =~ %r{Validating http://www.intertwingly.net/blog/index.})
+        puts "Using locally installed Python feed validator"
+        $validator_installed = true
+      end
+    end
+  rescue
+    nil
+  end
+end
+
+def assert_feedvalidator(rss, todo=nil)
+  unless $validator_installed
+    puts 'Not validating feed because no validator (feedvalidator in python) is installed'
+    return
+  end
+
+  begin
+    file = Tempfile.new('typo-feed-test')
+    filename = file.path
+    file.write(rss)
+    file.close
+
+    messages = ''
+
+    IO.popen("feedvalidator file://#{filename}") do |pipe|
+      messages = pipe.read
+    end
+
+    okay, messages = parse_validator_messages(messages)
+
+    if todo && ! ENV['RUN_TODO_TESTS']
+      assert !okay, messages + "\nTest unexpectedly passed!\nFeed text:\n"+rss
+    else
+      assert okay, messages + "\nFeed text:\n"+rss
+    end
+  end
+end
+
+def parse_validator_messages(message)
+  messages=message.split(/\n/).reject do |m|
+    m =~ /Feeds should not be served with the "text\/plain" media type/ ||
+      m =~ /Self reference doesn't match document location/
+  end
+
+  if(messages.size > 1)
+    [false, messages.join("\n")]
+  else
+    [true, ""]
+  end
 end
 

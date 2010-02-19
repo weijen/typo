@@ -1,15 +1,30 @@
 require File.dirname(__FILE__) + '/../spec_helper'
 
+describe AccountsController do
+  before(:each) do
+    User.salt = 'change-me'
+  end
+
+  describe "A successful login with 'Remember me' checked" do
+    def make_request
+      post 'login', {:user => {:login => 'bob', :password => 'test'},
+        :remember_me => '1'}
+    end
+
+    it 'should not cause password to change' do
+      User.authenticate('bob', 'test').should == users(:bob)
+      make_request
+      request.session[:user_id].should == users(:bob).id
+      User.authenticate('bob', 'test').should == users(:bob)
+    end
+  end
+end
+
 describe 'A successfully authenticated login' do
   controller_name :accounts
 
   before(:each) do
-    @user = mock_model(User, :new_record? => false, :reload => @user)
-    @user.stub!(:profile).and_return(Profile.find_by_label('admin'))
-    User.stub!(:authenticate).and_return(@user)
-    User.stub!(:find_by_id).with(@user.id).and_return(@user)
-    User.stub!(:count).and_return(1)
-    controller.stub!(:this_blog).and_return(Blog.default)
+    User.stub!(:salt).and_return('change-me')
   end
 
   def make_request
@@ -17,9 +32,8 @@ describe 'A successfully authenticated login' do
   end
 
   it 'session gets a user' do
-    User.should_receive(:authenticate).and_return(@user)
     make_request
-    request.session[:user_id].should == @user.id
+    request.session[:user_id].should == users(:bob).id
   end
 
   it 'sets typo_user_profile cookie' do
@@ -39,7 +53,7 @@ describe 'A successfully authenticated login' do
   end
 
   it 'redirects to /admin if no return and your are logged' do
-    session[:user_id] = session[:user] = @user.id
+    session[:user_id] = session[:user] = users(:bob).id
     make_request
     response.should redirect_to(:controller => 'admin')
   end
@@ -63,7 +77,7 @@ describe 'User is inactive' do
     post 'login', {:user => {:login => 'inactive', :password => 'longtest'}}
   end
   
-  it 'no user in goes in the session' do
+  it 'no user id goes in the session' do
     make_request
     response.session[:user_id].should be_nil
   end
@@ -149,6 +163,26 @@ describe 'GET /login' do
   end
 end
 
+describe 'GET /login with 0 existing users' do
+  controller_name :accounts
+
+  before(:each) do
+    User.stub!(:count).and_return(0)
+  end
+
+  it 'should render action :signup' do
+    get 'login'
+    response.should redirect_to(:action => 'signup')
+    assigns[:login].should be_nil
+  end
+
+  it 'should render :signup' do
+    get 'recover_password'
+
+    response.should redirect_to(:action => 'signup')
+  end
+end
+
 describe 'GET signup and >0 existing user' do
   controller_name :accounts
 
@@ -197,6 +231,75 @@ describe 'GET signup with 0 existing users' do
   it 'renders action signup' do
     get 'signup'
     response.should render_template(:signup)
+  end
+end
+
+describe 'GET signup with 0 existing users and unconfigured blog' do
+  controller_name :accounts
+
+  before(:each) do
+    Blog.delete_all
+    @blog = Blog.new.save
+    User.delete_all
+  end
+
+  it 'redirects to setup' do
+    get 'signup'
+    response.should redirect_to(:controller => 'setup', :action => 'index')
+  end
+end
+
+describe 'POST signup with 0 existing users and unconfigured blog' do
+  controller_name :accounts
+
+  before(:each) do
+    Blog.delete_all
+    @blog = Blog.new.save
+    User.delete_all
+  end
+
+  it 'redirects to setup' do
+    post 'signup', params
+    response.should redirect_to(:controller => 'setup', :action => 'index')
+  end
+  
+  def params
+    {'user' =>  {'login' => 'newbob', 'password' => 'newpassword',
+        'password_confirmation' => 'newpassword'}}
+  end
+end
+
+describe 'GET login with 0 existing users and unconfigured blog' do
+  controller_name :accounts
+
+  before(:each) do
+    Blog.delete_all
+    @blog = Blog.new.save
+    User.delete_all
+  end
+
+  it 'redirects to setup' do
+    get 'login'
+    response.should redirect_to(:controller => 'setup', :action => 'index')
+  end
+end
+
+describe 'POST login with 0 existing users and unconfigured blog' do
+  controller_name :accounts
+
+  before(:each) do
+    Blog.delete_all
+    @blog = Blog.new.save
+    User.delete_all
+  end
+
+  it 'redirects to setup' do
+    post 'login', params
+    response.should redirect_to(:controller => 'setup', :action => 'index')
+  end
+  
+  def params
+    {'user' =>  {'login' => 'newbob', 'password' => 'newpassword'}}
   end
 end
 
@@ -280,5 +383,32 @@ describe 'User is logged in' do
     get 'logout'
     cookies[:auth_token].should == nil
     cookies[:typo_user_profile].should == nil
+  end
+end
+
+describe 'User has lost his password and send a good email' do
+  controller_name :accounts
+  
+  before(:each) do
+    @user = mock_model(User, :new_record? => false, :reload => @user)
+    @user.stub!(:profile).and_return(Profile.find_by_label('admin'))
+    User.stub!(:find_by_login).with('tobi').and_return(@user)
+    User.stub!(:count).and_return(1)
+  end
+  
+  it 'should render recover_password' do
+    get 'recover_password'
+    
+    response.should render_template('recover_password')
+  end
+  
+  it 'should render login' do
+    make_request
+    
+    response.should redirect_to(:action => 'login')
+  end
+  
+  def make_request
+   post 'recover_password', {:user => {:login => 'tobi'}}
   end
 end

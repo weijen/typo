@@ -10,14 +10,16 @@
   </p>
 
   <div class="content">
-    <% if controller.action_name == 'show' or controller.action_name == 'index' %>
+    <% unless controller.action_name == 'redirect' %>
       <% if article.excerpt? %>
         <%= article.excerpt %>
       <% else %>
         <%= article.html(:body) %>
-        <div class="extended">
-          <p><%= link_to_permalink article,"Continue reading..." %></p>
-        </div>
+        <% if article.extended? %>
+          <div class="extended">
+            <p><%= link_to_permalink article,"Continue reading..." %></p>
+          </div>
+        <% end %>
       <% end %>
     <% else %>
       <%= article.html(:body) %>

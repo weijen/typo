@@ -16,7 +16,8 @@ class Admin::ResourcesController < Admin::BaseController
           @up = Resource.create(:filename => file.original_filename, :mime => mime, :created_at => Time.now)
 
           @up.write_to_disk(file)
-
+          @up.create_thumbnail
+          
           @message = _('File uploaded: ')+ file.size.to_s
           finish_upload_status "'#{@message}'"
       end
@@ -78,9 +79,22 @@ class Admin::ResourcesController < Admin::BaseController
   def index
     @r = Resource.new
     @itunes_category_list = @r.get_itunes_categories
-    @resources = Resource.paginate :page => params[:page], :conditions => @conditions, :order => 'created_at DESC', :per_page => this_blog.admin_display_elements
+    @resources = Resource.paginate :page => params[:page], :conditions => "mime NOT LIKE '%image%'", :order => 'created_at DESC', :per_page => this_blog.admin_display_elements
   end
-
+  
+  def images
+    @resources = Resource.paginate :page => params[:page], :conditions => "mime LIKE '%image%'", :order => 'created_at DESC', :per_page => this_blog.admin_display_elements
+  end
+  
+  def get_thumbnails
+    position = params[:position].to_i
+    
+    @resources = Resource.find(:all, :conditions => "mime LIKE '%image%'", :order => 'created_at DESC', :limit => "#{position}, 10")
+    
+    render 'get_thumbnails', :layout => false
+    
+  end
+  
   def destroy
     begin
       @file = Resource.find(params[:id])

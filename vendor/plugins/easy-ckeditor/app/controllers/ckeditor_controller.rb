@@ -92,17 +92,22 @@ class CkeditorController < ActionController::Base
   end
 
   def upload_file
-    begin
+    begin      
       load_file_from_params
+      Resource.create(:filename => @new_file.original_filename, :mime => @ftype, :created_at => Time.now)    
       copy_tmp_file(@new_file) if mime_types_ok(@ftype)
     rescue => e
       @errorNumber = 110 if @errorNumber.nil?
     end
 
     render :text => %Q'
-      <script>
-         window.parent.OnUploadCompleted(#{@errorNumber}, "#{uploaded_file_path}");
-      </script>'
+    <html>
+      <body>
+        <script type="text/javascript">
+          window.parent.CKEDITOR.tools.callFunction(1, "#{url_for(:controller => "/articles").gsub(%r{/$},'')}/#{uploaded_file_path}");
+        </script>
+      </body>
+    </html>'
   end
 
   def upload
@@ -175,7 +180,7 @@ class CkeditorController < ActionController::Base
   # Returns the filesystem folder with the current folder
   #
   def current_directory_path
-    base_dir = "#{UPLOAD_ROOT}/#{UPLOAD_FOLDER}/#{params[:type]}"
+    base_dir = "#{UPLOAD_ROOT}/#{params[:type]}"
     Dir.mkdir(base_dir,0775) unless File.exists?(base_dir)
     check_path("#{base_dir}#{params[:currentFolder]}")
   end
@@ -193,7 +198,7 @@ class CkeditorController < ActionController::Base
   # Current uploaded file path
   #
   def uploaded_file_path
-    "#{upload_directory_path}/#{@new_file.original_filename}"
+    "#{upload_directory_path}#{@new_file.original_filename}"
   end
 
   ##############################################################################

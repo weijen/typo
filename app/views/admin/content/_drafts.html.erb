@@ -1,6 +1,6 @@
-<p class="paginate l">
-  <%= _("Drafts:") %>
-  <% for draft in @drafts %>
-    <%= link_to(draft.title, :action => 'edit', :id => draft.id) %>
+<div class='bordered'>
+  <h3><label class="block content"><%= _("Drafts:") %></label></h3>
+  <% Article.drafts.all.each do |draft| %>
+    <%= link_to("#{draft.title}<br />", :action => 'edit', :id => draft.id) %>
   <% end %>
-</p>
+</div>

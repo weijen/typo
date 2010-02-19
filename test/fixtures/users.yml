@@ -1,16 +1,19 @@
 # Read about fixtures at http://ar.rubyonrails.org/classes/Fixtures.html
+# NOTE: passwords are valid when User.salt == 'change-me'.
 
 tobi:
   login: tobi
   password: ea0f5fd4398054c1c7aa0fbc7aaea30914a14441 # whatever
   name: Tobi
   email: tobi@example.com
-  notify_via_email: true
+  notify_via_email: false
   notify_on_new_articles: false
-  notify_on_comments: true
+  notify_on_comments: false
+  notify_watch_my_articles: false
   profile: admin
   text_filter: markdown_filter
   state: active
+  last_connection: 2009-11-21 12:15:58
   
 bob:
   login: bob
@@ -18,23 +21,27 @@ bob:
   name: Bob
   email: bob@example.com
   notify_via_email: false
-  notify_on_new_articles: true
+  notify_on_new_articles: false
   notify_on_comments: false
+  notify_watch_my_articles: false
   profile: admin
   text_filter: none_filter
   state: active
+  last_connection: 2009-11-21 12:15:58
   
 existingbob:
   login: existingbob
   password: 9a91e1d8d95b6315991a88121bb0aa9f03ba0dfc # test
   name: Also Bob
   email: alsobob@example.com
-  notify_via_email: true
+  notify_via_email: false
   notify_on_new_articles: false
   notify_on_comments: false
+  notify_watch_my_articles: false
   profile: admin
   text_filter: markdown_filter
   state: active
+  last_connection: 2009-11-21 12:15:58
 
 longbob:
   login: longbob
@@ -44,21 +51,25 @@ longbob:
   notify_via_email: false
   notify_on_new_articles: false
   notify_on_comments: false
+  notify_watch_my_articles: false
   profile: admin
   text_filter: markdown_filter
   state: active
+  last_connection: 2009-11-21 12:15:58
   
 randomuser:
   login: randomuser
   password: 8e9b1a9a38e66ca572a5e8fdac8e256848842dfa # longtest
   name: Random User
   email: randomuser@example.com
-  notify_via_email: true
-  notify_on_new_articles: true
-  notify_on_comments: true
+  notify_via_email: false
+  notify_on_new_articles: false
+  notify_on_comments: false
+  notify_watch_my_articles: false
   profile: admin
   text_filter: none_filter
   state: active
+  last_connection: 2009-11-21 12:15:58
   
 user_publisher:
   login: shingara
@@ -68,9 +79,11 @@ user_publisher:
   notify_via_email: false
   notify_on_new_articles: false
   notify_on_comments: false
+  notify_watch_my_articles: false
   profile: publisher
   text_filter: markdown_filter
   state: active
+  last_connection: 2009-11-21 12:15:58
 
 inactive_user:
   login: inactive
@@ -80,6 +93,9 @@ inactive_user:
   notify_via_email: false
   notify_on_new_articles: false
   notify_on_comments: false
+  notify_watch_my_articles: false
   profile: publisher
   text_filter: markdown_filter
   state: inactive
+  last_connection: 2009-11-21 12:15:58
+  

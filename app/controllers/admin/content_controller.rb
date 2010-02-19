@@ -10,13 +10,11 @@ class Admin::ContentController < Admin::BaseController
     @items = Tag.find_with_char params[:article][:keywords].strip
     render :inline => "<%= auto_complete_result @items, 'name' %>"
   end
-  
+
   def index
-    @drafts = Article.draft.all
-    setup_categories
     @search = params[:search] ? params[:search] : {}
     @articles = Article.search_no_draft_paginate(@search, :page => params[:page], :per_page => this_blog.admin_display_elements)
-    
+
     if request.xhr?
       render :partial => 'article_list', :object => @articles
     else
@@ -24,31 +22,30 @@ class Admin::ContentController < Admin::BaseController
     end
   end
 
-  def new 
+  def new
     new_or_edit
   end
-  
+
   def edit
-    @drafts = Article.find(:all, :conditions => "state='draft'")
     @article = Article.find(params[:id])
-    
-    unless @article.access_by? current_user 
+
+    unless @article.access_by? current_user
       redirect_to :action => 'index'
       flash[:error] = _("Error, you are not allowed to perform this action")
       return
     end
-    new_or_edit 
+    new_or_edit
   end
 
   def destroy
     @article = Article.find(params[:id])
-    
+
     unless @article.access_by?(current_user)
       redirect_to :action => 'index'
       flash[:error] = _("Error, you are not allowed to perform this action")
       return
     end
-    
+
     if request.post?
       @article.destroy
       redirect_to :action => 'index'
@@ -60,7 +57,7 @@ class Admin::ContentController < Admin::BaseController
     return unless params[:editor].to_s =~ /simple|visual/
     current_user.editor = params[:editor].to_s
     current_user.save!
-    
+
     render :partial => "#{params[:editor].to_s}_editor"
   end
 
@@ -90,26 +87,36 @@ class Admin::ContentController < Admin::BaseController
 
   def autosave
     get_or_build_article
-    unless @article.published
-      params[:article] ||= {}
-      @article.attributes = params[:article]
-      @article.published = false
-      setup_categories
-      @selected = @article.categories.collect { |c| c.id }
-      set_article_author
-      save_attachments
 
-      set_article_title_for_autosave
+    # This is ugly, but I have to check whether or not the article is
+    # published to create the dummy draft I'll replace later so that the
+    # published article doesn't get overriden on the front
+    if @article.published
+      parent_id = @article.id
+      @article = Article.drafts.child_of(parent_id).first || Article.new
+      @article.allow_comments = this_blog.default_allow_comments
+      @article.allow_pings    = this_blog.default_allow_pings
+      @article.text_filter    = (current_user.editor == 'simple') ? current_user.text_filter : 1
+      @article.parent_id      = parent_id
+    end
 
-      @article.state = "draft" unless @article.state == "withdrawn"
-      if @article.save
-        render(:update) do |page|
-          page.replace_html('autosave', hidden_field_tag('id', @article.id))
-          page.replace_html('permalink', text_field('article', 'permalink'))
-        end
+    params[:article] ||= {}
+    @article.attributes = params[:article]
+    @article.published = false
+    set_article_author
+    save_attachments
 
-        return true
+    set_article_title_for_autosave
+
+    @article.state = "draft" unless @article.state == "withdrawn"
+    if @article.save
+      render(:update) do |page|
+        page.replace_html('autosave', hidden_field_tag('id', @article.id))
+        page.replace_html('permalink', text_field('article', 'permalink', {:class => 'small medium'}))
+        page.replace_html('preview_link', link_to(_("Preview"), {:controller => '/previews', :id => @article.id }, {:target => 'new'}))
       end
+
+      return true
     end
     render :text => nil
   end
@@ -132,23 +139,25 @@ class Admin::ContentController < Admin::BaseController
 
   def new_or_edit
     get_or_build_article
+
     @macros = TextFilter.available_filters.select { |filter| TextFilterPlugin::Macro > filter }
     @article.published = true
-    
+
     # TODO Test if we can delete the next line. It's delete on nice_permalinks branch
     params[:article] ||= {}
 
     @resources = Resource.find(:all, :order => 'filename')
+    @images = Resource.paginate :page => params[:page], :conditions => "mime LIKE '%image%'", :order => 'created_at DESC', :per_page => 10
     @article.attributes = params[:article]
-    
-    setup_categories
-    @selected = @article.categories.collect { |c| c.id }
-    @drafts = Article.drafts
+
+
     if request.post?
       set_article_author
       save_attachments
       @article.state = "draft" if @article.draft
+
       if @article.save
+        destroy_the_draft unless @article.draft
         set_article_categories
         set_the_flash
         redirect_to :action => 'index'
@@ -169,6 +178,10 @@ class Admin::ContentController < Admin::BaseController
     end
   end
 
+  def destroy_the_draft
+    Article.all(:conditions => { :parent_id => @article.id }).map(&:destroy)
+  end
+
   def set_article_author
     return if @article.author
     @article.author = current_user.login
@@ -176,10 +189,15 @@ class Admin::ContentController < Admin::BaseController
   end
 
   def set_article_title_for_autosave
-    lastid = Article.find(:first, :order => 'id DESC').id
-    @article.title = @article.title.blank? ? "Draft article " + lastid.to_s : @article.permalink = @article.stripped_title
+    if @article.title.blank?
+      lastid = Article.find(:first, :order => 'id DESC').id
+      @article.title = "Draft article " + lastid.to_s
+    end
+    unless @article.parent_id and Article.find(@article.parent_id).published
+      @article.permalink = @article.stripped_title
+    end
   end
-  
+
   def save_attachments
     return if params[:attachments].nil?
     params[:attachments].each do |k,v|
@@ -195,7 +213,6 @@ class Admin::ContentController < Admin::BaseController
         @article.categories << cat
       end
     end
-    @selected = params[:categories] || []
   end
 
   def def_build_body
@@ -204,7 +221,7 @@ class Admin::ContentController < Admin::BaseController
       @article.body = body[0]
       @article.extended = body[1]
     end
-    
+
   end
 
   def get_or_build_article
@@ -218,10 +235,6 @@ class Admin::ContentController < Admin::BaseController
             else
               Article.find(params[:id])
             end
-  end
-
-  def setup_categories
-    @categories = Category.find(:all, :order => 'UPPER(name)')
   end
 
   def setup_resources

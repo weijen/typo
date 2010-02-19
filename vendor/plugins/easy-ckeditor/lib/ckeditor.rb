@@ -12,7 +12,7 @@ module Ckeditor
   PLUGIN_CONTROLLER_PATH = "#{PLUGIN_PATH}/app/controllers"
   PLUGIN_VIEWS_PATH = "#{PLUGIN_PATH}/app/views"
   PLUGIN_HELPER_PATH = "#{PLUGIN_PATH}/app/helpers"
-  PLUGIN_FILE_MANAGER_URI = '/ckeditor/command'
+  PLUGIN_FILE_MANAGER_URI = ''
   PLUGIN_FILE_MANAGER_UPLOAD_URI = '/ckeditor/upload'
 
   module Helper
@@ -76,8 +76,7 @@ module Ckeditor
     alias_method :ckeditor_form_remote_for, :ckeditor_remote_form_for
 
     def ckeditor_element_id(object, field)
-      id = eval("@#{object}.id")
-      "#{object}_#{id}_#{field}_editor"
+      "#{object}__#{field}_editor"
     end
 
     def ckeditor_div_id(object, field)

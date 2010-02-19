@@ -4,6 +4,7 @@
     <th><%= _("Type") %></th>
     <th><%= _("Delete")%></th>
   </tr>
+  <%= render_void_table(@blacklist_patterns.size, 3)  %>
   <% for blacklist_pattern in @blacklist_patterns -%>
   <tr <%= alternate_class -%>>  
     <td><%= link_to h(blacklist_pattern.pattern), :action => "edit", :id => blacklist_pattern.id %></td>
@@ -11,5 +12,5 @@
     <td><%= link_to _("Delete"), :action => 'destroy',  :id => blacklist_pattern.id %></td>
   </tr>  
 <% end -%>
-  <tr class="paginate"><td colspan="3"><%= will_paginate @blacklist_patterns %></td></tr>
+<%= display_pagination(@blacklist_patterns, 3)%>
 </table>

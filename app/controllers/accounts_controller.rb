@@ -1,6 +1,8 @@
 class AccountsController < ApplicationController
 
-  before_filter :verify_users, :only => [:login]
+  before_filter :verify_config
+  before_filter :verify_users, :only => [:login, :recover_password]
+  filter_parameter_logging "password"
 
   def login 
     if session[:user_id] && session[:user_id] == self.current_user.id
@@ -26,6 +28,7 @@ class AccountsController < ApplicationController
         end
         add_to_cookies(:typo_user_profile, self.current_user.profile.label, '/')
 
+        self.current_user.update_connection_time
         flash[:notice]  = _("Login successful")
         redirect_back_or_default :controller => "admin/dashboard", :action => "index"
       else
@@ -51,8 +54,32 @@ class AccountsController < ApplicationController
       if @user.save
         self.current_user = @user
         session[:user_id] = @user.id
-        redirect_to :controller => "accounts", :action => "confirm", :password => params[:password]
+        
+        # Crappy hack : by default, the auto generated post is user_id less and it makes Typo crash
+        if User.count == 1
+          art = Article.find(:first)
+          art.user_id = @user.id
+          art.save
+        end
+        
+        redirect_to :controller => "accounts", :action => "confirm"
         return
+      end
+    end
+  end
+  
+  def recover_password
+    @page_title = "#{this_blog.blog_name} - #{_('Recover your password')}"
+    if request.post?
+      @user = User.find(:first, :conditions => ["login = ? or email = ?", params[:user][:login], params[:user][:login]])
+      
+      if @user
+        @user.password = generate_password
+        @user.save
+        flash[:notice] = _("An email has been successfully sent to your address with your new password")
+        redirect_to :action => 'login'
+      else
+        flash[:error] = _("Oops, something wrong just happened")
       end
     end
   end
@@ -80,5 +107,8 @@ class AccountsController < ApplicationController
     redirect_to(:controller => "accounts", :action => "signup") if User.count == 0
     true
   end
-
+  
+  def verify_config
+    redirect_to :controller => "setup", :action => "index" if  ! this_blog.configured?
+  end
 end

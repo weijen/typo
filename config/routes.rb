@@ -41,7 +41,8 @@ ActionController::Routing::Routes.draw do |map|
   map.search '/search/:q.:format', :controller => "articles", :action => "search"
   map.search_base '/search/', :controller => "articles", :action => "search"
   map.connect '/archives/', :controller => "articles", :action => "archives"
-
+  map.connect '/setup', :controller => 'setup', :action => 'index'
+  
   # I thinks it's useless. More investigating
   map.connect "trackbacks/:id/:day/:month/:year",
     :controller => 'trackbacks', :action => 'create', :conditions => {:method => :post}
@@ -85,6 +86,8 @@ ActionController::Routing::Routes.draw do |map|
       :controller => 'textfilter', :action => 'public_action'
   end
 
+  map.connect 'previews/:id', :controller => 'articles', :action => 'preview'
+
   # Work around the Bad URI bug
   %w{ accounts backend files sidebar textfilter xml }.each do |i|
     map.connect "#{i}", :controller => "#{i}", :action => 'index'
@@ -98,7 +101,7 @@ ActionController::Routing::Routes.draw do |map|
     map.connect "/admin/#{i}/:action/:id", :controller => "admin/#{i}", :action => nil, :id => nil
   end
 
-  map.connect '*from', :controller => 'redirect', :action => 'redirect'
+  map.connect '*from', :controller => 'articles', :action => 'redirect'
 
   map.connect(':controller/:action/:id') do |default_route|
     class << default_route

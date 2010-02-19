@@ -16,7 +16,10 @@ module ApplicationHelper
   # Produce a link to the permalink_url of 'item'.
   def link_to_permalink(item, title, anchor=nil, style=nil, nofollow=nil)
     anchor = "##{anchor}" if anchor
-    "<a href=\"#{item.permalink_url}#{anchor}\" rel=\"#{nofollow}\" class=\"#{style}\">#{title}</a>"
+    class_attr = "class=\"#{style}\"" if style
+    rel_attr = "rel=\"#{nofollow}\"" if nofollow
+
+    "<a href=\"#{item.permalink_url}#{anchor}\" #{rel_attr} #{class_attr}>#{title}</a>"
   end
 
   # The '5 comments' link from the bottom of articles
@@ -93,10 +96,14 @@ module ApplicationHelper
   end
 
   def feed_title
-    return @feed_title if @feed_title
-    return @page_title \
-      ? "#{this_blog.blog_name} : #{@page_title}" \
-      : this_blog.blog_name
+    case
+    when @feed_title
+      return @feed_title
+    when (@page_title and not @page_title.blank?)
+      return "#{this_blog.blog_name} : #{@page_title}"
+    else
+      return this_blog.blog_name
+    end
   end
 
   def html(content, what = :all, deprecated = false)
@@ -129,6 +136,10 @@ module ApplicationHelper
     end
   end
 
+  def javascript_include_lang
+    javascript_include_tag "lang/#{Localization.lang.to_s}" if File.exists? File.join(RAILS_ROOT, 'public', 'lang', Localization.lang.to_s)    
+  end
+
   def page_header
     page_header_includes = contents.collect { |c| c.whiteboard }.collect do |w|
       w.select {|k,v| k =~ /^page_header_/}.collect do |(k,v)|
@@ -150,14 +161,10 @@ module ApplicationHelper
   <link rel="EditURI" type="application/rsd+xml" title="RSD" href="#{ url_for :controller => '/xml', :action => 'rsd' }" />
   <link rel="alternate" type="application/atom+xml" title="Atom" href="#{ feed_atom }" />
   <link rel="alternate" type="application/rss+xml" title="RSS" href="#{ feed_rss }" />
-  #{ stylesheet_link_tag 'coderay.css', :media => 'all' }
-  #{ stylesheet_link_tag 'user-styles.css', :media => 'all' }
-  #{ javascript_include_tag "lang/" + Localization.lang.to_s }
-  #{ javascript_include_tag "cookies" }
+  #{ javascript_include_tag 'cookies', 'prototype', 'effects', 'builder', 'typo', :cache => true }
+  #{ stylesheet_link_tag 'coderay', 'user-styles', :cache => true }
+  #{ javascript_include_lang }
   #{ javascript_tag "window._token = '#{form_authenticity_token}'"}
-  #{ javascript_include_tag "prototype" }
-  #{ javascript_include_tag "effects" }
-  #{ javascript_include_tag "typo" }
   #{ page_header_includes.join("\n") }
   <script type="text/javascript">#{ @content_for_script }</script>
   #{ google_analytics }

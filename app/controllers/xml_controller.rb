@@ -46,6 +46,7 @@ class XmlController < ApplicationController
         return
       end
 
+      # TODO: Use templates from articles controller.
       respond_to do |format|
         format.googlesitemap
         format.atom
@@ -84,7 +85,7 @@ class XmlController < ApplicationController
     if params[:format]
       params[:format] = NORMALIZED_FORMAT_FOR[params[:format]]
     else
-      params[:foramt] = 'rss'
+      params[:format] = 'rss'
     end
     return true
   end

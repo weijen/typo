@@ -23,10 +23,6 @@ describe 'Given a new blog' do
     @blog.sp_article_auto_close.should == 0
   end
 
-  it "#sp_allow_non_ajax_comments should be false" do
-    @blog.should be_sp_allow_non_ajax_comments
-  end
-
   it "#sp_url_limit should be 0" do
     @blog.sp_url_limit.should == 0
   end
@@ -73,7 +69,7 @@ describe 'Given a new blog' do
   end
 
   it '#theme should be "typographic"' do
-    @blog.theme.should == 'typographic'
+    @blog.theme.should == 'true-blue-3'
   end
 
   it 'should not use gravatar' do

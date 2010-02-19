@@ -15,7 +15,7 @@ module Admin::BaseHelper
   end
 
   def show_page_heading
-    content_tag(:h2, @page_heading) unless @page_heading.blank?
+    content_tag(:h2, @page_heading, :class => 'mb20') unless @page_heading.blank?
   end
 
   def cancel(url = {:action => 'index'})
@@ -23,7 +23,7 @@ module Admin::BaseHelper
   end
 
   def save(val = _("Store"))
-    '<input type="submit" value="' + val + '" class="submit" />'
+    '<input type="submit" value="' + val + '" class="save" />'
   end
 
   def confirm_delete(val = _("Delete"))
@@ -107,13 +107,9 @@ module Admin::BaseHelper
   end
   
   def class_content
-    if controller.controller_name  =~ /content|pages|categories|resources/
+    if controller.controller_name  =~ /content|pages|categories|resources|feedback/
       "current" if controller.action_name =~ /list|index|show/
     end
-  end
-
-  def class_feedback
-    "current" if controller.controller_name  =~ /feedback/
   end
 
   def class_themes
@@ -136,12 +132,6 @@ module Admin::BaseHelper
     controller.controller_name  =~ /profiles/ ? "current right" : "right"
   end
   
-
-  def t_textarea(object_name, method, options)
-    return ckeditor_textarea(object_name, method, options) if current_user.editor == 'visual'
-    text_area(object_name, method, options)
-  end
-
   def alternate_editor
     return 'visual' if current_user.editor == 'simple'
     return 'simple'
@@ -166,12 +156,12 @@ module Admin::BaseHelper
 
   def render_void_table(size, cols)
     if size == 0
-      "<tr>\n<td colspan=#{cols}>" + _("There is no %s yet. Why don't you start and create one?", _(controller.controller_name)) + "</td>\n</tr>\n"
+      "<tr>\n<td colspan=#{cols}>" + _("There are no %s yet. Why don't you start and create one?", _(controller.controller_name)) + "</td>\n</tr>\n"
     end
   end
   
   def cancel_or_save
-    result = '<p class="paginate r">'
+    result = '<p class="right">'
     result << cancel 
     result << " "
     result << _("or") 
@@ -188,7 +178,7 @@ module Admin::BaseHelper
   
   def macro_help_popup(macro, text)
     unless current_user.editor == 'visual'
-      "<a href=\"#{url_for :controller => 'textfilters', :action => 'macro_help', :id => macro.short_name}\" onclick=\"return popup(this, 'Typo Macro Help')\">#{text}</a>"
+      "<a rel='lightbox' href=\"#{url_for :controller => 'textfilters', :action => 'macro_help', :id => macro.short_name}\" onclick=\"return popup(this, 'Typo Macro Help')\">#{text}</a>"
     end    
   end
   
@@ -218,6 +208,27 @@ module Admin::BaseHelper
             :success => "new Element.toggle('update_spinner_#{id}')",
             :update => "#{update}")
     link << image_tag("spinner-blue.gif", :id => "update_spinner_#{id}", :style => 'display:none;')
+  end
+
+  def display_pagination(collection, cols)
+    if WillPaginate::ViewHelpers.total_pages_for_collection(collection) > 1
+      return "<tr><td colspan=#{cols} class='paginate'>#{will_paginate(collection)}</td></tr>"
+    end
+  end 
+  
+  def show_thumbnail_for_editor(image)
+    thumb = "#{RAILS_ROOT}/public/files/thumb_#{image.filename}"
+    picture = "#{this_blog.base_url}/files/#{image.filename}"
+    
+    image.create_thumbnail unless File.exists? thumb
+    
+    # If something went wrong with thumbnail generation, we just display a place holder
+    thumbnail = (File.exists? thumb) ? "#{this_blog.base_url}/files/thumb_#{image.filename}" : "#{this_blog.base_url}/images/thumb_blank.jpg" 
+    
+    picture = "<img class='tumb' src='#{thumbnail}' "
+    picture << "alt='#{this_blog.base_url}/files/#{image.filename}' "
+    picture << " onclick=\"edInsertImageFromCarousel('article_body_and_extended', '#{this_blog.base_url}/files/#{image.filename}');\" />"
+    return picture
   end
   
 end

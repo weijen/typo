@@ -1,5 +1,18 @@
 require File.dirname(__FILE__) + '/../spec_helper'
 
+describe User do
+  describe 'Factory Girl' do
+    it 'should user factory valid' do
+      Factory.create(:user).should be_valid
+      Factory.build(:user).should be_valid
+    end
+    it 'should multiple user factory valid' do
+      Factory.create(:user).should be_valid
+      Factory.create(:user).should be_valid
+    end
+  end
+end
+
 describe 'With the contents and users fixtures loaded' do
   before(:each) do
     User.stub!(:salt).and_return('change-me')
@@ -93,17 +106,14 @@ describe 'With a new user' do
   end
 end
 
-describe 'With a user, "bob" in the database' do
+describe 'With a user in the database' do
   before(:each) do
-    User.delete_all
-    u = User.new(:login => 'bob')
-    u.password = u.password_confirmation = 'secure password'
-    u.email = 'typo@typo.com' #Email needed
-    u.save!
+    @olduser = Factory.create(:user)
   end
 
   it 'should not be able to create another user with the same login' do
-    u = User.new(:login => 'bob') {|u| u.password = u.password_confirmation = 'secure password'}
+    login = @olduser.login
+    u = User.new(:login => login) {|u| u.password = u.password_confirmation = 'secure password'}
 
     u.should_not be_valid
     u.errors.should be_invalid('login')
@@ -112,9 +122,7 @@ end
 
 describe 'Updating an existing user' do
   before(:each) do
-    User.delete_all
-    @user = User.new :login => 'bob'
-    @user.email = 'typo@typo.com'
+    @user = Factory.create(:user)
     set_password 'a secure password'
     @user.save!
   end
@@ -149,8 +157,17 @@ describe 'Updating an existing user' do
     it "is not actually changed when set to empty" do
       set_password ''
       @user.save!
-      User.authenticate('bob', '').should be_nil
-      User.authenticate('bob', 'a secure password').should == @user
+      User.authenticate(@user.login, '').should be_nil
+      User.authenticate(@user.login, 'a secure password').should == @user
+    end
+  end
+
+  describe "saving twice" do
+    it "should not change the password" do
+      (found = User.authenticate(@user.login, 'a secure password')).should == @user
+      found.save
+      found.save
+      User.authenticate(@user.login, 'a secure password').should == found
     end
   end
 

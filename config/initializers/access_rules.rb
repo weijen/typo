@@ -47,6 +47,11 @@ AccessControl.map :require => [ :admin, :publisher, :contributor ]  do |map|
   map.permission "admin/cache"
   map.permission "admin/dashboard"
   map.permission "admin/textfilters"
+  # FIXME: For previews, during production 'previews' is needed, during
+  # test, 'articles' is needed. Proposed solution: move previews to
+  # ArticlesController
+  map.permission "previews"
+  map.permission "articles"
 
   map.project_module :write, nil do |project|
     project.menu    "Write",            { :controller => "admin/content",    :action => "new" }
@@ -57,19 +62,13 @@ AccessControl.map :require => [ :admin, :publisher, :contributor ]  do |map|
   map.project_module :content, nil do |project|
     project.menu    "Manage",           { :controller => "admin/content",    :action => "index" }
     project.submenu "Articles",         { :controller => "admin/content",    :action => "index" }
-	project.submenu "Pages",            { :controller => "admin/pages",      :action => "index" }
-	project.submenu "Categories",       { :controller => "admin/categories", :action => "index" }
-	project.submenu "Uploads",          { :controller => "admin/resources",  :action => "index" }
-	project.submenu "Tags",             { :controller => "admin/tags",       :action => "index" }
-  end
-
-  map.project_module :feedback, nil do |project|
-    project.menu    "Comments",              { :controller => "admin/feedback" }
-    project.submenu "All comments",          { :controller => "admin/feedback" }    
-    project.submenu "Limit to ham",          { :controller => "admin/feedback",  :ham => 'f' }
-    project.submenu "Unapproved comments",   { :controller => "admin/feedback",  :confirmed  => "f" }    
-    project.submenu "Limit to spam",         { :controller => "admin/feedback",  :published  => "f" }
-    project.submenu "",                      { :controller => "admin/comments", :action => "show" }
+    project.submenu "Comments",         { :controller => "admin/feedback" }
+	  project.submenu "Pages",            { :controller => "admin/pages",      :action => "index" }
+	  project.submenu "Categories",       { :controller => "admin/categories", :action => "index" }
+	  project.submenu "Files",            { :controller => "admin/resources",  :action => "index" }
+	  project.submenu "Images",           { :controller => "admin/resources",  :action => "images"}
+	  project.submenu "Tags",             { :controller => "admin/tags",       :action => "index" }
+	  project.submenu "",                      { :controller => "admin/comments", :action => "show" }
     project.submenu "",                      { :controller => "admin/comments", :action => "new" }
     project.submenu "",                      { :controller => "admin/comments", :action => "edit" }
     project.submenu "",                      { :controller => "admin/comments", :action => "destroy" }
@@ -80,17 +79,17 @@ AccessControl.map :require => [ :admin, :publisher, :contributor ]  do |map|
   end
 
   map.project_module :themes, nil do |project|
-    project.menu    "Design",                { :controller => "admin/themes", :action => "index"  }
+    project.menu    "Customize",             { :controller => "admin/themes", :action => "index"  }
+    project.submenu "Choose theme",          { :controller => "admin/themes", :action => "index" }
+    project.submenu "Customize sidebar",     { :controller => "admin/sidebar", :action => "index" }
     project.submenu "Theme editor",          { :controller => "admin/themes", :action => "editor" }
-    project.submenu "Sidebar",               { :controller => "admin/sidebar", :action => "index" }
-    project.submenu "Theme catalogue",       { :controller => "admin/themes", :action => "catalogue" }
+    project.submenu "View theme catalogue",       { :controller => "admin/themes", :action => "catalogue" }
   end
   
   map.project_module :settings, nil do |project|
     project.menu    "Settings",              { :controller => "admin/settings", :action => "index" }
     project.submenu "General settings",      { :controller => "admin/settings", :action => "index" }
     project.submenu "Write",                 { :controller => "admin/settings", :action => "write" }
-    project.submenu "Read",                  { :controller => "admin/settings", :action => "read" }
     project.submenu "Feedback",              { :controller => "admin/settings", :action => "feedback" }			
     project.submenu "SEO",                   { :controller => "admin/settings", :action => "seo" }
     project.submenu "Blacklist",             { :controller => "admin/blacklist", :action => "index" }

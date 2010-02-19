@@ -1,30 +1,5 @@
 require File.dirname(__FILE__) + '/../spec_helper'
-require 'xml_controller'
 require 'dns_mock'
-
-# This test now has optional support for validating the generated RSS feeds.
-# Since Ruby doesn't have a RSS/Atom validator, I'm using the Python source
-# for http://feedvalidator.org and calling it via 'system'.
-#
-# To install the validator, download the source from
-# http://sourceforge.net/cvs/?group_id=99943
-# Then copy src/feedvalidator and src/rdflib into a Python lib directory.
-# Finally, copy src/demo.py into your path as 'feedvalidator', make it executable,
-# and change the first line to something like '#!/usr/bin/python'.
-
-if($validator_installed == nil)
-  $validator_installed = false
-  begin
-    IO.popen("feedvalidator 2> /dev/null","r") do |pipe|
-      if (pipe.read =~ %r{Validating http://www.intertwingly.net/blog/index.})
-        puts "Using locally installed Python feed validator"
-        $validator_installed = true
-      end
-    end
-  rescue
-    nil
-  end
-end
 
 describe XmlController do
   integrate_views
@@ -35,51 +10,7 @@ describe XmlController do
   end
 
   before do
-    Article.create!(:title => "News from the future!",
-                    :body => "The future is cool!",
-                    :keywords => "future",
-                    :created_at => Time.now + 12.minutes)
-  end
-
-  def assert_feedvalidator(rss, todo=nil)
-    unless $validator_installed
-      puts 'not test of validating feed because no validator (feedvalidator in python) installed'
-      return
-    end
-
-    begin
-      file = Tempfile.new('typo-feed-test')
-      filename = file.path
-      file.write(rss)
-      file.close
-
-      messages = ''
-
-      IO.popen("feedvalidator file://#{filename}") do |pipe|
-        messages = pipe.read
-      end
-
-      okay, messages = parse_validator_messages(messages)
-
-      if todo && ! ENV['RUN_TODO_TESTS']
-        assert !okay, messages + "\nTest unexpectedly passed!\nFeed text:\n"+rss
-      else
-        assert okay, messages + "\nFeed text:\n"+rss
-      end
-    end
-  end
-
-  def parse_validator_messages(message)
-    messages=message.split(/\n/).reject do |m|
-      m =~ /Feeds should not be served with the "text\/plain" media type/ ||
-      m =~ /Self reference doesn't match document location/
-    end
-
-    if(messages.size > 1)
-      [false, messages.join("\n")]
-    else
-      [true, ""]
-    end
+    @article = Factory.create(:article)
   end
 
   def assert_moved_permanently_to(location)
@@ -87,18 +18,52 @@ describe XmlController do
     assert_equal location, @response.headers["Location"]
   end
 
-  def test_feed_rss20
+  describe "without format parameter" do
+    it "redirects main feed to articles RSS feed" do
+      get :feed, :type => 'feed'
+      assert_moved_permanently_to 'http://test.host/articles.rss'
+    end
+
+    it "redirects comments feed to Comments RSS feed" do
+      get :feed, :type => 'comments'
+      assert_moved_permanently_to admin_comments_url(:format=>:rss)
+    end
+
+    it "returns valid RSS feed for trackbacks feed type" do
+      get :feed, :type => 'trackbacks'
+      assert_response :success
+      assert_xml @response.body
+      assert_feedvalidator @response.body
+      assert_rss20
+    end
+
+    it "redirects article feed to Article RSS feed" do
+      get :feed, :type => 'article', :id => @article.id
+      assert_moved_permanently_to @article.permalink_by_format(:rss)
+    end
+
+    it "redirects category feed to Category RSS feed" do
+      get :feed, :type => 'category', :id => 'personal'
+      assert_moved_permanently_to(category_url('personal', :format => 'rss'))
+    end
+
+    it "redirects tag feed to Tag RSS feed" do
+      get :feed, :type => 'tag', :id => 'foo'
+      assert_moved_permanently_to(tag_url('foo', :format=>'rss'))
+    end
+  end
+
+  it "test_feed_rss20" do
     get :feed, :format => 'rss20', :type => 'feed'
     assert_moved_permanently_to 'http://test.host/articles.rss'
   end
 
-  def test_feed_rss20_comments
+  it "test_feed_rss20_comments" do
     get :feed, :format => 'rss20', :type => 'comments'
-    assert_response :moved_permanently
     assert_moved_permanently_to admin_comments_url(:format=>:rss)
   end
 
-  def test_feed_rss20_trackbacks
+  it "test_feed_rss20_trackbacks" do
     get :feed, :format => 'rss20', :type => 'trackbacks'
     assert_response :success
     assert_xml @response.body
@@ -106,34 +71,34 @@ describe XmlController do
     assert_rss20
   end
 
-  def test_feed_rss20_article
-    get :feed, :format => 'rss20', :type => 'article', :id => contents(:article1).id
-    assert_moved_permanently_to contents(:article1).permalink_by_format(:rss)
+  it "test_feed_rss20_article" do
+    get :feed, :format => 'rss20', :type => 'article', :id => @article.id
+    assert_moved_permanently_to @article.permalink_by_format(:rss)
   end
 
-  def test_feed_rss20_category
+  it "test_feed_rss20_category" do
     get :feed, :format => 'rss20', :type => 'category', :id => 'personal'
     assert_moved_permanently_to(category_url('personal', :format => 'rss'))
   end
 
-  def test_feed_rss20_tag
+  it "test_feed_rss20_tag" do
     get :feed, :format => 'rss20', :type => 'tag', :id => 'foo'
     assert_moved_permanently_to(tag_url('foo', :format=>'rss'))
   end
 
-  def test_feed_atom10_feed
+  it "test_feed_atom10_feed" do
     get :feed, :format => 'atom10', :type => 'feed'
     assert_response :moved_permanently
     assert_moved_permanently_to "http://test.host/articles.atom"
   end
 
-  def test_feed_atom10_comments
+  it "test_feed_atom10_comments" do
     get :feed, :format => 'atom10', :type => 'comments'
     assert_response :moved_permanently
     assert_moved_permanently_to admin_comments_url(:format=>'atom')
   end
 
-  def test_feed_atom10_trackbacks
+  it "test_feed_atom10_trackbacks" do
     get :feed, :format => 'atom10', :type => 'trackbacks'
     assert_response :success
     assert_xml @response.body
@@ -148,54 +113,47 @@ describe XmlController do
     assert_select 'summary'
   end
 
-  def test_feed_atom10_with_accent
-    Article.create!(:title => "News from the future!",
-                    :body => "The future is cool!",
-                    :keywords => "future",
-                    :created_at => Time.now + 12.minutes)
+  it "test_feed_atom10_article" do
+    get :feed, :format => 'atom10', :type => 'article', :id => @article.id
+    assert_moved_permanently_to @article.permalink_by_format('atom')
   end
 
-  def test_feed_atom10_article
-    get :feed, :format => 'atom10', :type => 'article', :id => contents(:article1).id
-    assert_moved_permanently_to contents(:article1).permalink_by_format('atom')
-  end
-
-  def test_feed_atom10_category
+  it "test_feed_atom10_category" do
     get :feed, :format => 'atom10', :type => 'category', :id => 'personal'
     assert_moved_permanently_to(category_url('personal', :format => 'atom'))
   end
 
-  def test_feed_atom10_tag
+  it "test_feed_atom10_tag" do
     get :feed, :format => 'atom10', :type => 'tag', :id => 'foo'
     assert_moved_permanently_to(tag_url('foo',:format => 'atom'))
   end
 
-  def test_articlerss
-    get :articlerss, :id => contents(:article1).id
+  it "test_articlerss" do
+    get :articlerss, :id => @article.id
     assert_response :redirect
   end
 
-  def test_commentrss
+  it "test_commentrss" do
     get :commentrss, :id => 1
     assert_response :redirect
   end
 
-  def test_trackbackrss
+  it "test_trackbackrss" do
     get :trackbackrss, :id => 1
     assert_response :redirect
   end
 
-  def test_bad_format
+  it "test_bad_format" do
     get :feed, :format => 'atom04', :type => 'feed'
     assert_response :missing
   end
 
-  def test_bad_type
+  it "test_bad_type" do
     get :feed, :format => 'rss20', :type => 'foobar'
     assert_response :missing
   end
 
-  def test_rsd
+  it "test_rsd" do
     get :rsd, :id => 1
     assert_response :success
     assert_nothing_raised do
@@ -203,13 +161,13 @@ describe XmlController do
     end
   end
 
-  def test_atom03
+  it "test_atom03" do
     get :feed, :format => 'atom03', :type => 'feed'
     assert_response :moved_permanently
     assert_moved_permanently_to 'http://test.host/articles.atom'
   end
 
-  def test_itunes
+  it "test_itunes" do
     get :itunes
     assert_response :success
     assert_xml @response.body
@@ -217,7 +175,7 @@ describe XmlController do
   end
 
   # TODO(laird): make this more robust
-  def test_sitemap
+  it "test_sitemap" do
     get :feed, :format => 'googlesitemap', :type => 'sitemap'
 
     assert_response :success
@@ -230,9 +188,5 @@ describe XmlController do
 
   def assert_atom10
     assert_select 'feed:root[xmlns="http://www.w3.org/2005/Atom"] > entry', :count => assigns(:items).size
-  end
-
-  def set_extended_on_rss(value)
-    this_blog.show_extended_on_rss = value
   end
 end

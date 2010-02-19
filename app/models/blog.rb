@@ -4,17 +4,24 @@ class BlogRequest
   attr_accessor :protocol, :host_with_port, :path, :symbolized_path_parameters, :relative_url_root
 
   def initialize(root)
-    @protocol = @host_with_port = @path = ''
+    unless root =~ /(https?):\/\/([^\/]*)(.*)/
+      raise "Invalid root argument: #{root}"
+    end
+    @protocol = $1
+    @host_with_port = $2
+    @relative_url_root = $3.gsub(%r{/$},'')
+    @path = ''
     @symbolized_path_parameters = {}
-    @relative_url_root = root.gsub(%r{/$},'')
   end
 end
 
-# The Blog class represents one blog.  It stores most configuration settings
-# and is linked to most of the assorted content classes via has_many.
+# The Blog class represents the one and only blog.  It stores most
+# configuration settings and is linked to most of the assorted content
+# classes via has_many.
 #
-# Typo decides which Blog object to use by searching for a Blog base_url that
-# matches the base_url computed for each request.
+# Once upon a time, there were plans to make typo handle multiple blogs,
+# but it never happened and typo is now firmly single-blog.
+#
 class Blog < ActiveRecord::Base
   include ConfigManager
   extend ActiveSupport::Memoizable
@@ -38,7 +45,6 @@ class Blog < ActiveRecord::Base
   # Spam
   setting :sp_global,                  :boolean, false
   setting :sp_article_auto_close,      :integer, 0
-  setting :sp_allow_non_ajax_comments, :boolean, true
   setting :sp_url_limit,               :integer, 0
   setting :sp_akismet_key,             :string, ''
 
@@ -62,7 +68,7 @@ class Blog < ActiveRecord::Base
   setting :default_moderate_comments,  :boolean, false
   setting :link_to_author,             :boolean, false
   setting :show_extended_on_rss,       :boolean, true
-  setting :theme,                      :string, 'typographic'
+  setting :theme,                      :string, 'true-blue-3'
   setting :use_gravatar,               :boolean, false
   setting :global_pings_disable,       :boolean, false
   setting :ping_urls,                  :string, "http://blogsearch.google.com/ping/RPC2\nhttp://rpc.technorati.com/rpc/ping\nhttp://ping.blo.gs/\nhttp://rpc.weblogs.com/RPC2"
@@ -99,14 +105,8 @@ class Blog < ActiveRecord::Base
     end
   end
 
-  # Find the Blog that matches a specific base URL.  If no Blog object is found
-  # that matches, then grab the default blog.  If *that* fails, then create a new
-  # Blog.  The last case should only be used when Typo is first installed.
-  def self.find_blog(base_url)
-    Blog.default || Blog.create
-  end
-
-  # The default Blog.  This is the lowest-numbered blog, almost always id==1.
+  # The default Blog. This is the lowest-numbered blog, almost always
+  # id==1. This should be the only blog as well.
   def self.default
     find(:first, :order => 'id')
   rescue
@@ -146,30 +146,31 @@ class Blog < ActiveRecord::Base
   # without needing a controller handy, so we can produce URLs from within models
   # where appropriate.
   #
-  # It also uses our new RouteCache, so repeated URL generation requests should be
-  # fast, as they bypass all of Rails' route logic.
+  # It also caches the result in the RouteCache, so repeated URL generation
+  # requests should be fast, as they bypass all of Rails' route logic.
   def url_for(options = {}, extra_params = {})
+    @request ||= BlogRequest.new(self.base_url)
     case options
     when String
-      url_generated = ''
-      url_generated = self.base_url if extra_params[:only_path]
+      if extra_params[:only_path]
+        url_generated = @request.relative_url_root
+      else
+        url_generated = self.base_url
+      end
       url_generated += "/#{options}" # They asked for 'url_for "/some/path"', so return it unedited.
       url_generated += "##{extra_params[:anchor]}" if extra_params[:anchor]
       url_generated
     when Hash
       unless RouteCache[options]
-        options.reverse_merge!(:only_path => true, :controller => '',
+        options.reverse_merge!(:only_path => false, :controller => '',
                                :action => 'permalink')
-        # In Rails > 2.2 the rewrite method use
-        # ActionController::Base.relative_url_root instead of
-        # @request.relative_url_root
+        @url ||= ActionController::UrlRewriter.new(@request, {})
         if ActionController::Base.relative_url_root.nil?
           old_relative_url = nil
         else
           old_relative_url = ActionController::Base.relative_url_root.dup
         end
-        ActionController::Base.relative_url_root = self.base_url
-        @url ||= ActionController::UrlRewriter.new(BlogRequest.new(self.base_url), {})
+        ActionController::Base.relative_url_root = @request.relative_url_root
         RouteCache[options] = @url.rewrite(options)
         ActionController::Base.relative_url_root = old_relative_url
       end
@@ -202,12 +203,12 @@ class Blog < ActiveRecord::Base
 
   def permalink_has_identifier
     unless permalink_format =~ /(%year%|%month%|%day%|%title%)/
-      errors.add(:permalink_format, _('You need a Format of permalink with an identifier : %%month%%, %%year%%, %%day%%, %%title%%'))
+      errors.add(:permalink_format, _("You need a permalink format with an identifier : %%month%%, %%year%%, %%day%%, %%title%%"))
     end
 
-    # A permalink can be finish by .atom or .rss. it's reserved to feed
+    # A permalink cannot end in .atom or .rss. it's reserved for the feeds
     if permalink_format =~ /\.(atom|rss)$/
-      errors.add(:permalink_format, _("Can't finish by .rss or .atom. It's reserved to be use by feed"))
+      errors.add(:permalink_format, _("Can't end in .rss or .atom. These are reserved to be used for feed URLs"))
     end
   end
 

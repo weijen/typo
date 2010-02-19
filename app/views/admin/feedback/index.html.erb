@@ -1,13 +1,11 @@
 <% @page_heading =  _("Feedback for") + " #{ this_blog.settings['blog_name'] }" %>
-<% subtabs_for(:feedback) %>
+<% subtabs_for(:content) %>
 
-<div class="search">
   <% form_tag({:action => 'index'}, :method => :get) do %>
-  <label for="search"><%= _("Search Comments and Trackbacks that contain")%>...:</label><br /> 
-  <input type="text" id="feedback_search" name="search" value="<%=h params[:search] %>" size="30" />
-  <%= submit_tag _("Search") %>
+  <h4><label for="search"><%= _("Search Comments and Trackbacks that contain")%>...:</label></h4>
+  <input type="text" id="feedback_search" name="search" value="<%=h params[:search] %>" class='small medium' />
+  <%= submit_tag(_("Search"), {:class => 'search'}) %>
   <% end %>
-</div>
 
 <div class="list">
   <% form_tag({:action => 'bulkops'}, :method => :post) do %>
@@ -25,10 +23,20 @@
       <th><%= _("IP")%></th>
     </tr>
     <tr class="menubar">
-      <td colspan="6">&nbsp;</td>
+      <td>&nbsp;</td>
+      <td colspan="5">
+        <select onchange='window.location=this.options[this.selectedIndex].value;'>
+          <option value=''><%= _("All comments")%></option>
+          <option value='?ham=f' <%= 'selected' if params[:ham] == 'f' %>><%= _("Limit to ham") %></option>
+          <option value='?confirmed=f' <%= 'selected' if params[:confirmed] == 'f' %>><%= _("Unapproved comments") %></option>
+          <option value='?published=f' <%= 'selected' if params[:published] == 'f' %>><%= _("Limit to spam")%></option>
+        </select>
+      </td>
     </tr>
+    <%= render_void_table(@feedback.size, 9) %>
+
     <%= render :partial => 'item', :collection => @feedback %>
-    <tr><td class="paginate" colspan="9"><%= will_paginate @feedback %></td></tr>
+    <%= display_pagination(@feedback, 6)%>
   </table>
 
   <%= render :partial => 'button', :locals => { :position => 'bottom' } %>
