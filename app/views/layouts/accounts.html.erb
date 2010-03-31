@@ -5,16 +5,14 @@
 		<meta http-equiv="Content-type" content="text/html; charset=utf-8" />		
 		<title><%= @page_title %></title>
 		<meta http-equiv="imagetoolbar" content="no" />
-		<%= stylesheet_link_tag "administration.css" %>
-		<%= javascript_include_tag "prototype", "effects", "dragdrop", "controls", "typo" %>
+		<%= stylesheet_link_tag "accounts" %>
 	</head>
-
-    <body style='background: #023;'>
-      <div id='logincontainer'>
-        <div id='innerlogin'>
-          <%= yield %>
-        </div>
+  <body>
+    <div id='logincontainer'>
+      <div class='inner'>
+        <%= yield %>
       </div>
-    </body>
+    </div>
+  </body>
 </html>
 

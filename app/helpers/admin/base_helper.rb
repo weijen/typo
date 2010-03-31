@@ -4,18 +4,22 @@ module Admin::BaseHelper
   def subtabs_for(current_module)
     output = []
     AccessControl.project_module(current_user.profile.label, current_module).submenus.each_with_index do |m,i| 
-      current = (m.url[:controller] == params[:controller] && m.url[:action] == params[:action]) ? "current" : ""
-      output << subtab(_(m.name), current, m.url)
+      current = 
+      output << subtab(_(m.name), (m.url[:controller] == params[:controller] && m.url[:action] == params[:action]) ? '' : m.url)
     end     
     content_for(:tasks) { output.join("\n") }
   end
 
-  def subtab(label, style, options = {})
-    content_tag :li, link_to(label, options, { "class"=> style })
+  def subtab(label, options = {})
+    return content_tag :li, "<span class='subtabs'>#{label}</span>" if options.empty?
+    content_tag :li, link_to(label, options)
   end
 
   def show_page_heading
-    content_tag(:h2, @page_heading, :class => 'mb20') unless @page_heading.blank?
+    heading = ""
+    heading << content_tag(:div, @link_to_new, :class => 'page_new') unless @link_to_new.blank?
+    heading << content_tag(:h2, @page_heading, :class => 'page_heading') unless @page_heading.blank?
+    
   end
 
   def cancel(url = {:action => 'index'})
@@ -28,14 +32,6 @@ module Admin::BaseHelper
 
   def confirm_delete(val = _("Delete"))
    '<input type="submit" value="' + val + '" />'
-  end
-
-  def link_to_show(record, controller = @controller.controller_name)
-    if record.published?
-      link_to image_tag('admin/show.png', :alt => _("show"), :title => _("Show content")), 
-        {:controller => controller, :action => 'show', :id => record.id}, 
-        {:class => "lbOn"}
-      end
   end
 
   def link_to_edit(label, record, controller = @controller.controller_name)
@@ -88,48 +84,50 @@ module Admin::BaseHelper
     content_tag :li, link_to(_('Back to overview'), :action => 'index')
   end
 
-  def task_add_resource_metadata(title,id)
-    link_to_function(title, toggle_effect('add-resource-metadata-' + id.to_s, 'Effect.BlindUp', "duration:0.4", "Effect.BlindDown", "duration:0.4"))
-  end
-
-  def task_edit_resource_metadata(title,id)
-    link_to_function(title, toggle_effect('edit-resource-metadata-' + id.to_s, 'Effect.BlindUp', "duration:0.4", "Effect.BlindDown", "duration:0.4"))
-  end
-
   def task_edit_resource_mime(title,id)
     link_to_function(title, toggle_effect('edit-resource-mime-' + id.to_s, 'Effect.BlindUp', "duration:0.4", "Effect.BlindDown", "duration:0.4"))
   end
 
+  def class_tab
+    'ui-state-default ui-corner-top'
+  end
+
+  def class_selected_tab
+    'ui-state-default ui-corner-top ui-tabs-selected ui-state-active'
+  end
+
   def class_write
     if controller.controller_name == "content" or controller.controller_name == "pages"
-      "current" if controller.action_name == "new"
+      return class_selected_tab if controller.action_name == 'new' || controller.action_name == 'edit'
     end
+    class_tab
   end
   
   def class_content
     if controller.controller_name  =~ /content|pages|categories|resources|feedback/
-      "current" if controller.action_name =~ /list|index|show/
+      return class_selected_tab if controller.action_name =~ /list|index|show|article/
     end
+    class_tab
   end
 
   def class_themes
-    "current" if controller.controller_name  =~ /themes|sidebar/
+    return class_selected_tab if controller.controller_name  =~ /themes|sidebar/
+    class_tab
   end
   
-  def class_users
-    controller.controller_name  =~ /users/ ? "current right" : "right"
-  end
-
   def class_dashboard
-    controller.controller_name  =~ /dashboard/ ? "current right" : "right"
+    return class_selected_tab if controller.controller_name  =~ /dashboard/ 
+    class_tab
   end    
 
   def class_settings
-    controller.controller_name  =~ /settings|textfilter/ ? "current right" : "right"
+    return class_selected_tab if controller.controller_name  =~ /settings|users/ 
+    class_tab
   end
   
   def class_profile
-    controller.controller_name  =~ /profiles/ ? "current right" : "right"
+    return class_selected_tab if controller.controller_name  =~ /profiles/ 
+    class_tab
   end
   
   def alternate_editor
@@ -161,7 +159,7 @@ module Admin::BaseHelper
   end
   
   def cancel_or_save
-    result = '<p class="right">'
+    result = '<p>'
     result << cancel 
     result << " "
     result << _("or") 
@@ -172,8 +170,9 @@ module Admin::BaseHelper
   end
   
   def link_to_published(item)
-    
-    item.published? ? link_to_permalink(item, _("published"), '', 'published') : "<span class='unpublished'>#{_("unpublished")}</span>"  
+    icon = "<span class='ui-icon ui-icon-newwin' style='float: left'></span>"
+    return link_to_permalink(item,  _("published"), '', 'published') if item.published
+    link_to(_("unpublished %s", icon), {:controller => '/articles', :action => 'preview', :id => item.id}, {:class => 'unpublished', :target => '_new'})
   end
   
   def macro_help_popup(macro, text)

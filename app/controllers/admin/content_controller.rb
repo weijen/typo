@@ -113,7 +113,7 @@ class Admin::ContentController < Admin::BaseController
       render(:update) do |page|
         page.replace_html('autosave', hidden_field_tag('id', @article.id))
         page.replace_html('permalink', text_field('article', 'permalink', {:class => 'small medium'}))
-        page.replace_html('preview_link', link_to(_("Preview"), {:controller => '/previews', :id => @article.id }, {:target => 'new'}))
+        page.replace_html('preview_link', link_to(_("Preview"), {:controller => '/articles', :action => 'preview', :id => @article.id}, {:target => 'new'}))
       end
 
       return true
@@ -146,10 +146,9 @@ class Admin::ContentController < Admin::BaseController
     # TODO Test if we can delete the next line. It's delete on nice_permalinks branch
     params[:article] ||= {}
 
-    @resources = Resource.find(:all, :order => 'filename')
+    @resources = Resource.find(:all, :conditions => "mime NOT LIKE '%image%'", :order => 'filename')
     @images = Resource.paginate :page => params[:page], :conditions => "mime LIKE '%image%'", :order => 'created_at DESC', :per_page => 10
     @article.attributes = params[:article]
-
 
     if request.post?
       set_article_author

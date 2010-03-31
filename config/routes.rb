@@ -19,7 +19,6 @@ ActionController::Routing::Routes.draw do |map|
   map.atom 'articles.atom', :controller => 'articles', :action => 'index', :format => 'atom'
   
   map.with_options :controller => 'xml', :path_prefix => 'xml' do |controller|
-    controller.xml 'itunes/feed.xml', :action => 'itunes'
     controller.xml 'articlerss/:id/feed.xml', :action => 'articlerss'
     controller.xml 'commentrss/feed.xml', :action => 'commentrss'
     controller.xml 'trackbackrss/feed.xml', :action => 'trackbackrss'
@@ -42,6 +41,7 @@ ActionController::Routing::Routes.draw do |map|
   map.search_base '/search/', :controller => "articles", :action => "search"
   map.connect '/archives/', :controller => "articles", :action => "archives"
   map.connect '/setup', :controller => 'setup', :action => 'index'
+  map.connect '/setup/confirm', :controller => 'setup', :action => 'confirm'
   
   # I thinks it's useless. More investigating
   map.connect "trackbacks/:id/:day/:month/:year",
@@ -95,7 +95,7 @@ ActionController::Routing::Routes.draw do |map|
     map.connect "#{i}/:action/:id", :controller => i, :id => nil
   end
 
-  %w{advanced blacklist cache categories comments content profiles feedback general pages
+  %w{advanced cache categories comments content profiles feedback general pages
      resources sidebar textfilters themes trackbacks users settings tags }.each do |i|
     map.connect "/admin/#{i}", :controller => "admin/#{i}", :action => 'index'
     map.connect "/admin/#{i}/:action/:id", :controller => "admin/#{i}", :action => nil, :id => nil

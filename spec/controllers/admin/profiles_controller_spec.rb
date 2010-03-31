@@ -13,10 +13,10 @@ describe Admin::ProfilesController do
 
   # TODO: Make RESTful
   describe "successful POST to index" do
-    it "redirects to the admin page" do
+    it "redirects to profile page" do
       request.session = { :user => users(:tobi).id }
       post :index, :user => {:email => 'foo@bar.com'}
-      response.should redirect_to(admin_url)
+      response.should render_template('index')
     end
   end
 end

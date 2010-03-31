@@ -109,13 +109,6 @@ describe Comment do
       c.should_not be_status_confirmed
     end
 
-    it 'should reject spam pattern' do
-      c = valid_comment(:author => "Another Spammer",
-                          :body => "Texas hold-em poker crap",
-                          :url => "http://texas.hold-em.us")
-      should_be_spam(c)
-    end
-
     it 'should reject spam with uri limit' do
       c = valid_comment(:author => "Yet Another Spammer",
                         :body => %{ <a href="http://www.one.com/">one</a> <a href="http://www.two.com/">two</a> <a href="http://www.three.com/">three</a> <a href="http://www.four.com/">four</a> },
@@ -205,6 +198,43 @@ describe Comment do
   it 'should have good default filter' do
     a = Comment.find(:first)
     assert_equal 'markdown', a.default_text_filter.name
+  end
+
+  describe 'with feedback moderation enabled' do
+    before(:each) do
+      @blog = Blog.default
+      @blog.sp_global = false
+      @blog.default_moderate_comments = true
+      @blog.save!
+    end
+
+    it 'should save comment as presumably spam' do
+      comment = Comment.new do |c|
+        c.body = "Test foo"
+        c.author = 'Bob'
+        c.article_id = contents(:article1).id
+      end
+      assert comment.save!
+      
+      assert ! comment.published?
+      assert comment.spam?
+      assert ! comment.status_confirmed?
+    end
+
+    it 'should save comment as confirmed ham' do
+      comment = Comment.new do |c|
+        c.body = "Test foo"
+        c.author = 'Bob'
+        c.article_id = contents(:article1).id
+        c.user_id = users(:tobi).id
+      end
+      assert comment.save!
+      
+      assert comment.published?
+      assert comment.ham?
+      assert comment.status_confirmed?
+      
+    end
   end
 
 end
